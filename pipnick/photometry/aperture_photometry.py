@@ -3,8 +3,8 @@ import logging
 from photutils.aperture import CircularAperture
 from photutils.aperture import ApertureStats
 
-from nickelpipeline.convenience.fits_class import Fits_Simple
-from nickelpipeline.convenience.log import log_astropy_table
+from pipnick.convenience.fits_class import Fits_Simple
+from pipnick.convenience.log import log_astropy_table
 
 logger = logging.getLogger(__name__)
 

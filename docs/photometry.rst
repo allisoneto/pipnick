@@ -22,7 +22,7 @@ to access the same file concurrently.
 Using the Command-Line Script
 -----------------------------
 
-For command-line usage, you can run the `nickelpipeline_photometry`
+For command-line usage, you can run the `pipnick_photometry`
 script, which provides flexible options for executing photometric analysis.
 
 **Basic Use**
@@ -31,7 +31,7 @@ To execute the script, use the following command:
 
 .. code::
 
-   nickelpipeline_photometry <reddir> [options]
+   pipnick_photometry <reddir> [options]
 
 Replace `<reddir>` with the path to your directory of reduced images.
 
@@ -68,7 +68,7 @@ For example:
 
 .. code::
 
-   nickelpipeline_photometry 'path/to/reduced/images' -out /path/to/output -t 10.0 -g -f ellip -pf -pi
+   pipnick_photometry 'path/to/reduced/images' -out /path/to/output -t 10.0 -g -f ellip -pf -pi
 
 
 Using the Photometry Function
@@ -82,11 +82,11 @@ To run the `photometry_all()` function, follow these steps:
 1. **Import the Function**
 
    First, import the `photometry_all()` function from the
-   `nickelpipeline` package.
+   `pipnick` package.
 
    .. code:: python
 
-      from nickelpipeline.pipelines.photometry import photometry_all
+      from pipnick.pipelines.photometry import photometry_all
 
 2. **Initialize Logging**
 
@@ -98,7 +98,7 @@ To run the `photometry_all()` function, follow these steps:
    .. code:: python
 
       import logging
-      from nickelpipeline.convenience.log import adjust_global_logger
+      from pipnick.convenience.log import adjust_global_logger
 
       adjust_global_logger('INFO', __name__)
       logger = logging.getLogger(__name__)

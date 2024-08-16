@@ -119,9 +119,9 @@ class ScriptBase:
     def name(cls):
         """
         Provide the name of the script.  By default, this is the name of the
-        module with ``nickelpipeline_`` prepended.
+        module with ``pipnick_`` prepended.
         """
-        return f"nickelpipeline_{cls.__module__.split('.')[-1].split('_')[0]}"
+        return f"pipnick_{cls.__module__.split('.')[-1].split('_')[0]}"
 
     @classmethod
     def parse_args(cls, options=None):

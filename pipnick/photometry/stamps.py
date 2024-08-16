@@ -14,7 +14,7 @@ from astropy.stats import sigma_clipped_stats
 from photutils.detection import DAOStarFinder
 from skimage import transform
 
-from nickelpipeline.convenience.fits_class import Fits_Simple
+from pipnick.convenience.fits_class import Fits_Simple
 
 logger = logging.getLogger(__name__)
 

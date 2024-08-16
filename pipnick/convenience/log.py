@@ -12,8 +12,8 @@ def load_logging_config():
     dict
         The logging configuration loaded from the JSON file.
     """
-    # Load the JSON configuration from a file within the 'nickelpipeline.convenience' package
-    with pkg_resources.resource_stream('nickelpipeline.convenience', 'logging_config.json') as f:
+    # Load the JSON configuration from a file within the 'pipnick.convenience' package
+    with pkg_resources.resource_stream('pipnick.convenience', 'logging_config.json') as f:
         config = json.load(f)
     return config
 
@@ -36,7 +36,7 @@ def adjust_global_logger(log_level='INFO', name='all_others'):
     output_file = f"log_{name.split('.')[-1]}.log"
     
     # Adjust the configuration for the file name and log level
-    with pkg_resources.resource_stream('nickelpipeline.convenience', 'logging_config.json') as f:
+    with pkg_resources.resource_stream('pipnick.convenience', 'logging_config.json') as f:
         config = json.load(f)
         config['handlers']['file']['filename'] = output_file
         config['handlers']['console']['level'] = log_level

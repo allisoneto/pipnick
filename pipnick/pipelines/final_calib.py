@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from nickelpipeline.final_calibration.combo_astro_photo import convert_coords_all
+from pipnick.final_calibration.combo_astro_photo import convert_coords_all
 
 #################################################
 ####  This pipeline is currently incomplete  ####

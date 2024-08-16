@@ -2,7 +2,7 @@ Astrometric Solution
 ====================
 
 This tutorial demonstrates how to use the `astrometry_all()` function
-from the `nickelpipeline` package to astrometrically calibrate images
+from the `pipnick` package to astrometrically calibrate images
 using astrometry.net.
 
 Overview
@@ -27,7 +27,7 @@ pipelines attempt to access the same file concurrently.
 Using the Command-Line Script
 -----------------------------
 
-For command-line usage, you can run the `nickelpipeline_astrometry`
+For command-line usage, you can run the `pipnick_astrometry`
 script, which provides flexible options for obtaining an astrometric solution.
 
 **Basic Use**
@@ -36,7 +36,7 @@ To execute the script, use the following command:
 
 .. code::
 
-   nickelpipeline_astrometry <reddir> <apikey> [options]
+   pipnick_astrometry <reddir> <apikey> [options]
 
 Replace `<reddir>` with the path to your directory of reduced images and 
 `<apikey>` with your astrometry.net API key. 
@@ -70,7 +70,7 @@ For example:
 
 .. code::
 
-   nickelpipeline_astrometry '/path/to/reduced/images your_api_key' -out /path/to/output -t corr
+   pipnick_astrometry '/path/to/reduced/images your_api_key' -out /path/to/output -t corr
 
 
 
@@ -82,11 +82,11 @@ To begin using the `astrometry_all()` function, follow these steps:
 1. **Import the Function**
 
    First, import the `astrometry_all()` function from the
-   `nickelpipeline` package.
+   `pipnick` package.
 
    .. code:: python
 
-      from nickelpipeline.pipelines.astrometry import astrometry_all
+      from pipnick.pipelines.astrometry import astrometry_all
 
 2. **Initialize Logging**
 
@@ -98,7 +98,7 @@ To begin using the `astrometry_all()` function, follow these steps:
    .. code:: python
 
       import logging
-      from nickelpipeline.convenience.log import adjust_global_logger
+      from pipnick.convenience.log import adjust_global_logger
 
       adjust_global_logger('INFO', __name__)
       logger = logging.getLogger(__name__)

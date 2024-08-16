@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from nickelpipeline.convenience.fits_class import Fits_Simple
+from pipnick.convenience.fits_class import Fits_Simple
 
 logger = logging.getLogger(__name__)
 

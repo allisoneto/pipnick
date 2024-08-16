@@ -1,11 +1,11 @@
-from nickelpipeline.pipelines.reduction import reduce_all
-from nickelpipeline.pipelines.astrometry import astrometry_all
-from nickelpipeline.pipelines.photometry import photometry_all
-from nickelpipeline.pipelines.final_calib import final_calib_all
-from nickelpipeline.convenience.graphs import plot_sources
+from pipnick.pipelines.reduction import reduce_all
+from pipnick.pipelines.astrometry import astrometry_all
+from pipnick.pipelines.photometry import photometry_all
+from pipnick.pipelines.final_calib import final_calib_all
+from pipnick.convenience.graphs import plot_sources
 
 import logging
-from nickelpipeline.convenience.log import adjust_global_logger
+from pipnick.convenience.log import adjust_global_logger
 adjust_global_logger('INFO', __name__)
 logger = logging.getLogger(__name__)
 

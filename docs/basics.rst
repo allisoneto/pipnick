@@ -27,7 +27,7 @@ in a directory structure stored in the input directory's parent.
 
 Using the Command-Line Script
 -----------------------------
-For command-line usage, you can run the `nickelpipeline_reduction`
+For command-line usage, you can run the `pipnick_reduction`
 script, which provides flexible options for performing reduction.
 
 
@@ -37,7 +37,7 @@ To execute the script, use the following command:
 
 .. code::
 
-  nickelpipeline_reduction <rawdir> [options]
+  pipnick_reduction <rawdir> [options]
 
 Replace `<rawdir>` with the path to your directory of raw images.
 
@@ -48,7 +48,7 @@ out' files to be ignored.
 
 .. code::
 
-  nickelpipeline_reduction <table_path_in> [options]
+  pipnick_reduction <table_path_in> [options]
 
 Replace `<table_path_in>` with the path to this ASCII Astropy table.
 
@@ -91,7 +91,7 @@ For example:
 
 .. code::
 
-  nickelpipeline_reduction --rawdir 'path/to/data/raw/' --save_inters True --excl_files d1113 --excl_filts B --display
+  pipnick_reduction --rawdir 'path/to/data/raw/' --save_inters True --excl_files d1113 --excl_filts B --display
 
 This command processes the raw files in the specified directory, saves intermediate files, excludes certain files, and displays the reduced images.
 
@@ -107,12 +107,12 @@ To reduce your raw data using the `reduce_all()` function, follow these steps:
 1. **Import the Required Functions**
 
    Begin by importing the `reduce_all()` function and any relevant utility
-   functions from the `nickelpipeline` package.
+   functions from the `pipnick` package.
 
    .. code:: python
 
-      from nickelpipeline.pipelines.reduction import reduce_all
-      from nickelpipeline.convenience.display_fits import display_many_nickel
+      from pipnick.pipelines.reduction import reduce_all
+      from pipnick.convenience.display_fits import display_many_nickel
 
 2. **Initialize Logging**
 
@@ -124,7 +124,7 @@ To reduce your raw data using the `reduce_all()` function, follow these steps:
    .. code:: python
 
       import logging
-      from nickelpipeline.convenience.log import adjust_global_logger
+      from pipnick.convenience.log import adjust_global_logger
 
       adjust_global_logger('INFO', __name__)
       logger = logging.getLogger(__name__)
@@ -184,4 +184,4 @@ To reduce your raw data using the `reduce_all()` function, follow these steps:
 Viewing Results
 ---------------
 
-Reduced images can be viewed using `display_many_nickel()` or in DS9. Note that reduction may not correct certain "bad columns," which could be saturated or otherwise problematic. These columns are masked according to definitions in `nickelpipeline.convenience.nickel_data`.
+Reduced images can be viewed using `display_many_nickel()` or in DS9. Note that reduction may not correct certain "bad columns," which could be saturated or otherwise problematic. These columns are masked according to definitions in `pipnick.convenience.nickel_data`.

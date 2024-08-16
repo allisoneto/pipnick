@@ -6,9 +6,9 @@ from typing import Union
 from astropy.io import fits
 from astropy.visualization import ZScaleInterval
 
-from nickelpipeline.convenience.fits_class import Fits_Simple
-from nickelpipeline.convenience.dir_nav import unzip_directories
-from nickelpipeline.convenience.nickel_data import bad_columns
+from pipnick.convenience.fits_class import Fits_Simple
+from pipnick.convenience.dir_nav import unzip_directories
+from pipnick.convenience.nickel_data import bad_columns
 
 
 def print_fits_info(image_path: str):

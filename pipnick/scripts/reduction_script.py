@@ -3,8 +3,8 @@ Perform reduction of raw astronomical data frames (overscan subtraction,
 bias subtraction, flat division, cosmic ray masking)
 """ 
 
-from nickelpipeline.scripts import scriptbase
-from nickelpipeline.convenience.log import adjust_global_logger
+from pipnick.scripts import scriptbase
+from pipnick.convenience.log import adjust_global_logger
 import logging
 
 class ReductionPipeline(scriptbase.ScriptBase):
@@ -38,8 +38,8 @@ class ReductionPipeline(scriptbase.ScriptBase):
     @staticmethod
     def main(args):
         
-        from nickelpipeline.pipelines.reduction import reduce_all
-        from nickelpipeline.convenience.display_fits import display_many_nickel
+        from pipnick.pipelines.reduction import reduce_all
+        from pipnick.convenience.display_fits import display_many_nickel
         
         if args.very_verbose:
             args.verbosity = 5

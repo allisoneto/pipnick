@@ -14,7 +14,7 @@ from astropy.modeling.functional_models import Moffat1D
 from astropy.visualization import AsinhStretch, ZScaleInterval, ImageNormalize
 from astropy.stats import SigmaClip
 
-from nickelpipeline.psf_analysis.moffat.model_psf import FitEllipticalMoffat2D, FitMoffat2D, make_ellipse
+from pipnick.psf_analysis.moffat.model_psf import FitEllipticalMoffat2D, FitMoffat2D, make_ellipse
 
 logger = logging.getLogger(__name__)
 

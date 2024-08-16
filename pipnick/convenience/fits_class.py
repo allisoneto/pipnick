@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Union
 import logging
 
-from nickelpipeline.convenience.nickel_data import (ccd_shape, fov_shape)
-from nickelpipeline.convenience.nickel_masks import get_masks_from_file
+from pipnick.convenience.nickel_data import (ccd_shape, fov_shape)
+from pipnick.convenience.nickel_masks import get_masks_from_file
 
 logger = logging.getLogger(__name__)
 

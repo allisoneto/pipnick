@@ -8,8 +8,8 @@ from loess.loess_2d import loess_2d
 from photutils.aperture import CircularAperture
 from astropy.visualization import ZScaleInterval
 
-from nickelpipeline.convenience.nickel_data import ccd_shape
-from nickelpipeline.convenience.fits_class import Fits_Simple
+from pipnick.convenience.nickel_data import ccd_shape
+from pipnick.convenience.fits_class import Fits_Simple
 
 logger = logging.getLogger(__name__)
 

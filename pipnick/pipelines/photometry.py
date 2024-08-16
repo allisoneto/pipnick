@@ -1,8 +1,8 @@
 from pathlib import Path
 import logging
 
-from nickelpipeline.photometry.psf_photometry import psf_analysis, consolidate_groups
-from nickelpipeline.photometry.aperture_photometry import aperture_analysis
+from pipnick.photometry.psf_photometry import psf_analysis, consolidate_groups
+from pipnick.photometry.aperture_photometry import aperture_analysis
 
 logger = logging.getLogger(__name__)
 

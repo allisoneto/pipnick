@@ -2,11 +2,11 @@ import numpy as np
 from pathlib import Path
 import logging
 
-from nickelpipeline.psf_analysis.moffat.stamps import generate_stamps
-from nickelpipeline.psf_analysis.moffat.fit_psf import fit_psf_single, fit_psf_stack, psf_plot
-from nickelpipeline.convenience.dir_nav import unzip_directories
-from nickelpipeline.psf_analysis.moffat.model_psf import FitEllipticalMoffat2D, FitMoffat2D
-from nickelpipeline.convenience.nickel_data import plate_scale_approx
+from pipnick.psf_analysis.moffat.stamps import generate_stamps
+from pipnick.psf_analysis.moffat.fit_psf import fit_psf_single, fit_psf_stack, psf_plot
+from pipnick.convenience.dir_nav import unzip_directories
+from pipnick.psf_analysis.moffat.model_psf import FitEllipticalMoffat2D, FitMoffat2D
+from pipnick.convenience.nickel_data import plate_scale_approx
 
 
 logger = logging.getLogger(__name__)

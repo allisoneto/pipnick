@@ -163,36 +163,13 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# # Logs seem to be causing issues
-# test-data-05-12/log.txt
-# test-data-06-24/log.txt
-# test-data-06-26/log.txt
-# test-data-05-12
-# test-data-06-24
-# test-data-06-26
-# psf_analysis_moffat/proc_files
-# psf_analysis_moffat/graphs
 __pycache__
 old_git
 
 docs/sphinx_warnings.out
 
-all_testing_code/test-data-05-12-2
-all_testing_code/test-data-06-24
-all_testing_code/test-data-06-26
-all_testing_code/test-data-06-26-2
-all_testing_code/test-data-06-26-3
-all_testing_code/test-data-06-24-2
-all_testing_code/old_test_data
-all_testing_code/test_code/psf_analysis/moffat/proc_files
-all_testing_code/graphs
-all_testing_code/old_code
-all_testing_code/test99
-all_testing_code/test_code/photometry/proc_files
-all_testing_code/test_code/photometry/test_imgs
 examples/test_data_example
 *.log.1
 *.log.2
-*.log.3
 *proc_files
 *.tbl

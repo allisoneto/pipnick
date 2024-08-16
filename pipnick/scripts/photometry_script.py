@@ -2,8 +2,8 @@
 Perform photometric calibration on reduced images
 """
 
-from nickelpipeline.scripts import scriptbase
-from nickelpipeline.convenience.log import adjust_global_logger
+from pipnick.scripts import scriptbase
+from pipnick.convenience.log import adjust_global_logger
 import logging
 
 class PhotometryPipeline(scriptbase.ScriptBase):
@@ -39,7 +39,7 @@ class PhotometryPipeline(scriptbase.ScriptBase):
     @staticmethod
     def main(args):
         
-        from nickelpipeline.pipelines.photometry import photometry_all
+        from pipnick.pipelines.photometry import photometry_all
 
         if args.very_verbose:
             args.verbosity = 5

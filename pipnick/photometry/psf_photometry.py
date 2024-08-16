@@ -13,14 +13,14 @@ from astropy.table import Table
 
 from scipy.spatial import KDTree
 
-from nickelpipeline.convenience.fits_class import Fits_Simple
-from nickelpipeline.convenience.nickel_data import bad_columns
-from nickelpipeline.convenience.log import log_astropy_table
-from nickelpipeline.convenience.graphs import plot_sources
+from pipnick.convenience.fits_class import Fits_Simple
+from pipnick.convenience.nickel_data import bad_columns
+from pipnick.convenience.log import log_astropy_table
+from pipnick.convenience.graphs import plot_sources
 
-from nickelpipeline.photometry.moffat_model_photutils import MoffatElliptical2D
-from nickelpipeline.psf_analysis.moffat.stamps import generate_stamps
-from nickelpipeline.psf_analysis.moffat.fit_psf import fit_psf_single, fit_psf_stack, psf_plot
+from pipnick.photometry.moffat_model_photutils import MoffatElliptical2D
+from pipnick.psf_analysis.moffat.stamps import generate_stamps
+from pipnick.psf_analysis.moffat.fit_psf import fit_psf_single, fit_psf_stack, psf_plot
 
 logger = logging.getLogger(__name__)
 np.set_printoptions(edgeitems=100)

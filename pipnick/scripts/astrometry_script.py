@@ -2,8 +2,8 @@
 Perform astrometric calibration on reduced images
 """ 
 
-from nickelpipeline.scripts import scriptbase
-from nickelpipeline.convenience.log import adjust_global_logger
+from pipnick.scripts import scriptbase
+from pipnick.convenience.log import adjust_global_logger
 import logging
 
 class AstrometryPipeline(scriptbase.ScriptBase):
@@ -32,7 +32,7 @@ class AstrometryPipeline(scriptbase.ScriptBase):
     @staticmethod
     def main(args):
         
-        from nickelpipeline.pipelines.astrometry import astrometry_all
+        from pipnick.pipelines.astrometry import astrometry_all
         
         if args.very_verbose:
             args.verbosity = 5
