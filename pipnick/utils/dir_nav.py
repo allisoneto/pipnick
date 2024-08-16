@@ -1,36 +1,8 @@
 import logging
 from pathlib import Path
-from pipnick.convenience.fits_class import Fits_Simple
+from pipnick.utils.fits_class import Fits_Simple
 
 logger = logging.getLogger(__name__)
-
-def categories_from_conditions(condition_tuples: list, images: list) -> dict:
-    """
-    Categorize images based into named categories based on image numbers.
-
-    Parameters
-    ----------
-    condition_tuples : list
-        A list of tuples each containing a value and an image number range (start, end).
-    images : list
-        A list of Fits_Simple objects representing the images to be categorized.
-
-    Returns
-    -------
-    dict
-        A dictionary categorizing images based on conditions. The keys are the conditions, 
-        and the values are lists of image paths that satisfy the respective condition.
-    """
-    conditions = {}
-    for value, (start, end) in condition_tuples:
-        if value in conditions:
-            conditions[value].append((start, end))
-        else:
-            conditions[value] = [(start, end)]
-
-    conditions = {width: (lambda ranges: lambda img_num: any(start <= img_num <= end for start, end in ranges))(ranges) for width, ranges in conditions.items()}
-    categories = {width: [file.path for file in images if condition(file.image_num)] for width, condition in conditions.items()}
-    return categories
 
 
 def unzip_directories(path_list: list, output_format: str = 'Fits_Simple', allow_exceptions: bool = False) -> list:

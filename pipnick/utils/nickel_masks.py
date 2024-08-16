@@ -4,7 +4,7 @@ from pathlib import Path
 from matplotlib.path import Path as matPath
 import logging
 
-from pipnick.convenience.nickel_data import * 
+from pipnick.utils.nickel_data import * 
         
 logger = logging.getLogger(__name__)
 

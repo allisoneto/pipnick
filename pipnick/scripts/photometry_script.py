@@ -3,7 +3,7 @@ Perform photometric calibration on reduced images
 """
 
 from pipnick.scripts import scriptbase
-from pipnick.convenience.log import adjust_global_logger
+from pipnick.utils.log import adjust_global_logger
 import logging
 
 class PhotometryPipeline(scriptbase.ScriptBase):

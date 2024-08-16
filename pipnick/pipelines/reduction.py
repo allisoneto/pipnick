@@ -12,11 +12,11 @@ from astropy.wcs.wcs import FITSFixedWarning
 import astropy.units as u
 import ccdproc
 
-from pipnick.convenience.nickel_data import (gain, read_noise, bias_label, 
+from pipnick.utils.nickel_data import (gain, read_noise, bias_label, 
                                                     dome_flat_label, sky_flat_label,
                                                     sky_flat_label_alt,
                                                     dark_label, focus_label)
-from pipnick.convenience.nickel_masks import get_masks_from_file
+from pipnick.utils.nickel_masks import get_masks_from_file
 
 logger = logging.getLogger(__name__)
 

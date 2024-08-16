@@ -2,10 +2,10 @@ from pipnick.pipelines.reduction import reduce_all
 from pipnick.pipelines.astrometry import astrometry_all
 from pipnick.pipelines.photometry import photometry_all
 from pipnick.pipelines.final_calib import final_calib_all
-from pipnick.convenience.graphs import plot_sources
+from pipnick.photometry.fit import plot_sources
 
 import logging
-from pipnick.convenience.log import adjust_global_logger
+from pipnick.utils.log import adjust_global_logger
 adjust_global_logger('INFO', __name__)
 logger = logging.getLogger(__name__)
 

@@ -6,7 +6,7 @@ from astropy.wcs import WCS
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 
-from pipnick.convenience.log import log_astropy_table
+from pipnick.utils.log import log_astropy_table
 
 logger = logging.getLogger(__name__)
 

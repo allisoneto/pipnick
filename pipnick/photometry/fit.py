@@ -4,17 +4,24 @@
 ###################################################################################
 
 import numpy as np
-from pathlib import Path
-from matplotlib import pyplot, ticker
+from matplotlib import pyplot as plt
+from matplotlib import ticker
 from matplotlib.backends.backend_pdf import PdfPages
+from pathlib import Path
 import logging
 
 from astropy.io import fits
 from astropy.modeling.functional_models import Moffat1D
 from astropy.visualization import AsinhStretch, ZScaleInterval, ImageNormalize
 from astropy.stats import SigmaClip
+from photutils.aperture import CircularAperture
 
-from pipnick.psf_analysis.moffat.model_psf import FitEllipticalMoffat2D, FitMoffat2D, make_ellipse
+from pipnick.utils.fits_class import Fits_Simple
+from pipnick.photometry.moffat_model import FitEllipticalMoffat2D, FitMoffat2D, make_ellipse
+from pipnick.photometry.stamps import generate_stamps
+from pipnick.photometry.fit import fit_psf_single, fit_psf_stack, psf_plot
+from pipnick.utils.dir_nav import unzip_directories
+from pipnick.utils.nickel_data import plate_scale_approx
 
 logger = logging.getLogger(__name__)
 
@@ -212,6 +219,172 @@ def fit_psf_generic(mode, input_base, num_images, fittype='ellip',
             return clipped_coords, clipped_fit_objs, clipped_source_images
 
 
+def get_source_pars(path_list, category_str=None, fittype='ellip'):
+    """
+    Extract source coordinates and Moffat fit parameters from image data.
+
+    Parameters
+    ----------
+    path_list : list
+        List of paths (directories or files) to unzip.
+    category_str : str, optional
+        Category string for identifying the path to data.
+    fittype : str, optional
+        Type of model to fit ('ellip' or 'circ').
+
+    Returns
+    -------
+    source_coords : `numpy.ndarray`
+        Array of source coordinates.
+    source_pars : `numpy.ndarray`
+        Array of source parameters (x0, y0, amplitude, gamma1, gamma2, phi, alpha, background).
+    img_nums : `numpy.ndarray`
+        Array of image numbers corresponding to the sources.
+    """
+    # Unzip directories to get image files
+    images = unzip_directories(path_list, output_format='Path')
+
+    # Create output directories
+    proc_dir = Path('.').resolve() / "proc_files"
+    Path.mkdir(proc_dir, exist_ok=True)
+    proc_subdir = proc_dir / fittype
+    Path.mkdir(proc_subdir, exist_ok=True)
+    base_parent = proc_subdir / category_str
+    Path.mkdir(base_parent, exist_ok=True)
+    base = proc_subdir / category_str / category_str
+
+    # Generate stamps (image of sources) for image data
+    generate_stamps(images, output_base=base)
+
+    # Fit PSF models and get source coordinates and parameters
+    source_coords, source_fits, img_nums = fit_psf_single(base, len(images))
+    source_pars = np.array([fit.par for fit in source_fits])
+    return source_coords, source_pars, img_nums
+
+
+def get_graphable_pars(file_paths, group_name, verbose=False):
+    """
+    Fit PSF and extract parameters for given files (all stars in these files are
+    stacked), storing intermediates in folder proc_files/elliptical/group_name.
+
+    Parameters
+    ----------
+    file_paths : list
+        List of file paths to analyze.
+    group_name : str
+        Folder for storing intermediates (proc_files/group_name).
+    verbose : bool, optional
+        If True, print detailed output during processing.
+
+    Returns
+    -------
+    fwhm : float
+        FWHM.
+    ecc : float
+        FWHM eccentricity.
+    phi : float
+        Rotation angle phi.
+    """
+    # Define directory and base path for processed files
+    proc_dir = Path('.').resolve() / "proc_files"
+    Path.mkdir(proc_dir, exist_ok=True)
+    proc_subdir = proc_dir / 'ellip'
+    Path.mkdir(proc_subdir, exist_ok=True)
+    base_parent = proc_subdir / group_name
+    Path.mkdir(base_parent, exist_ok=True)
+    base = proc_subdir / group_name / group_name
+
+    # Generate image stamps for the given files
+    generate_stamps(file_paths, output_base=base)
+
+    # Fit PSF stack and get the fit results
+    psf_file = Path(f'{str(base)}.psf.fits').resolve()  # PSF info stored here
+    fit = fit_psf_stack(base, 1, fittype='ellip', ofile=psf_file)
+
+    # Plot PSF and get FWHM and phi values
+    plot_file = Path(f'{str(base)}.psf.pdf').resolve()  # Plots stored here
+    psf_plot(plot_file, fit, fittype='ellip', plot_fit=True)
+    fwhm = get_param_list('fwhm', np.array([fit.par]), (1,))[0][0]
+    ecc = get_param_list('ecc', np.array([fit.par]), (1,))[0][0]
+    phi = get_param_list('phi', np.array([fit.par]), (1,))[0][0]
+
+    if verbose:
+        print(f"Avg FWHM = {fwhm:3f}")
+        print(f"FWHM_ecc = {ecc:3f}")
+        print(f"Rotation angle phi = {phi:3f}")
+
+    return fwhm, ecc, phi
+
+
+def get_param_list(param_type, pars, shape, img_nums=None):
+    """
+    Generate the desired single parameter list, color range, and title
+    for contour plotting based on Moffat pars.
+
+    Parameters
+    ----------
+    param_type : str
+        Type of parameter ('fwhm', 'fwhm residuals', 'phi', 'ecc').
+    pars : `numpy.ndarray`
+        Fit parameters (list of par).
+    shape : tuple
+        Shape to output param_list.
+    img_nums : `numpy.ndarray`, optional
+        Image number for each source.
+
+    Returns
+    -------
+    param_list : `numpy.ndarray`
+        List of parameter values.
+    color_range : list
+        Range of colors for plotting.
+    title : str
+        Title for the plot.
+
+    Raises
+    ------
+    ValueError
+        If the input `param_type` is not 'fwhm', 'phi', 'ecc', or 'fwhm residuals'.
+    """
+    if param_type == 'fwhm':
+        # Calculate FWHM (average between semi-major and minor axes)
+        param_list = (FitMoffat2D.to_fwhm(pars[:, 3], pars[:, 6]) +
+                      FitMoffat2D.to_fwhm(pars[:, 4], pars[:, 6])) / 2 * plate_scale_approx
+        color_range = [1.5, 2.7]  # Optimized for Nickel 06-26-24 data
+        title = "FWHM (arcsec)"
+    elif param_type == 'fwhm residuals':
+        # Calculate FWHM residual (relative to minimum FWHM in image)
+        fwhm_list = (FitMoffat2D.to_fwhm(pars[:, 3], pars[:, 6]) +
+                     FitMoffat2D.to_fwhm(pars[:, 4], pars[:, 6])) / 2
+        mins = {img_num: np.min(fwhm_list[img_nums == img_num])
+                for img_num in list(set(img_nums))}
+        param_list = np.array([fwhm_list[i] - mins[img_num]
+                               for i, img_num in enumerate(img_nums)]) * plate_scale_approx
+        color_range = [0.0, 0.36]
+        title = "FWHM Residuals (arcsec)"
+    elif param_type == 'phi':
+        # Convert phi rotation angle relative to x-axis from the original phi
+        param_list = np.array([FitEllipticalMoffat2D.get_nice_phi(smooth_par)
+                               for smooth_par in pars])
+        color_range = [-45., 45.]
+        title = "Phi Rotation Angle (deg)"
+    elif param_type == 'ecc':
+        # Calculate eccentricity
+        param_list = []
+        for smooth_par in pars:
+            fwhm1 = FitMoffat2D.to_fwhm(smooth_par[3], smooth_par[6])
+            fwhm2 = FitMoffat2D.to_fwhm(smooth_par[4], smooth_par[6])
+            param_list.append(np.sqrt(np.abs(fwhm1 ** 2 - fwhm2 ** 2)) / max(fwhm1, fwhm2))
+        param_list = np.array(param_list)
+        color_range = [0.29, 0.65]  # Optimized for Nickel 06-26-24 data
+        title = "Eccentricity"
+    else:
+        raise ValueError("Input param_type must be 'fwhm' or 'phi'")
+
+    param_list = param_list.reshape(shape)
+    return param_list, color_range, title
+
+
 def psf_plot(plot_file, fit, fittype='ellip', show=False, plot_fit=True):
     """
     Plot the PSF fitting results and save to a PDF
@@ -225,9 +398,9 @@ def psf_plot(plot_file, fit, fittype='ellip', show=False, plot_fit=True):
         raise ValueError(f"psf_plot() not yet implemented for fittype={fittype}")
     with PdfPages(plot_file) as pdf:
         # Set up the figure
-        w, h = pyplot.figaspect(1.)
-        fig = pyplot.figure(figsize=(1.5*w,1.5*h))
-        pyplot.suptitle(plot_file.stem)  # Set the title of the plot
+        w, h = plt.figaspect(1.)
+        fig = plt.figure(figsize=(1.5*w,1.5*h))
+        plt.suptitle(plot_file.stem)  # Set the title of the plot
 
         stack = fit.c  # Observed stack
         model = fit.model()  # Model stack
@@ -315,20 +488,101 @@ def psf_plot(plot_file, fit, fittype='ellip', show=False, plot_fit=True):
             
         pdf.savefig()  # Save the figure to the PDF
         if show:
-            pyplot.show()  # Display the plot
+            plt.show()  # Display the plot
             try:
                 fig.clear()
             except:
                 pass
-        pyplot.close()
+        plt.close()
 
 
-def main():
+def plot_sources(phot_data, given_fwhm, image=None, flux_name='flux_fit',
+                 x_name='x_fit', y_name='y_fit', label_name='group_id',
+                 scale=1):
     """
-    Main function to run the script.
+    Plots sources from a photometric data table on a corresponding image, highlighting 
+    the grouped/ungrouped sources.
+
+    Parameters
+    ----------
+    phot_data : Table
+        Photometric data containing positions and fluxes of sources.
+    given_fwhm : float
+        Full-width half-maximum (FWHM) of the sources to set aperture sizes.
+    image : Fits_Simple, optional
+        Image to plot the sources on. If None, it is loaded from the metadata.
+    flux_name : str, optional
+        Name of the flux column in phot_data (default is 'flux_fit').
+    x_name : str, optional
+        Name of the x-coordinate column in phot_data (default is 'x_fit').
+    y_name : str, optional
+        Name of the y-coordinate column in phot_data (default is 'y_fit').
+    label_name : str, optional
+        Name of the label column in phot_data to use for annotating sources (default is 'group_id').
+    scale : float, optional
+        Scaling factor for the aperture sizes and annotation text (default is 1).
+
+    Returns
+    -------
+    None
     """
-    return
-
-if __name__ == '__main__':
-    main()
-
+    
+    if image is None:
+        # Load the image from the metadata if not provided
+        image = Fits_Simple(phot_data.meta['image_path'])
+    logger.info(f'Plotting image {image}')
+    
+    if flux_name == 'flux_fit' and 'flux_fit' not in phot_data.colnames:
+        flux_name = 'flux_psf'
+    
+    def get_apertures(phot_data):
+        """Create circular apertures for the sources based on their positions."""
+        x = phot_data[x_name]
+        y = phot_data[y_name]
+        positions = np.transpose((x, y))
+        return CircularAperture(positions, r=2 * given_fwhm * scale)
+    
+    # Separate good and bad photometric data based on group size
+    good_phot_data = phot_data[phot_data['group_size'] <= 1]
+    bad_phot_data = phot_data[phot_data['group_size'] > 1]
+    bad_apertures = get_apertures(bad_phot_data)
+    good_apertures = get_apertures(good_phot_data)
+    
+    # Determine image display limits using ZScale
+    interval = ZScaleInterval()
+    vmin, vmax = interval.get_limits(image.masked_array)
+    
+    # Set colormap and mask bad pixels with red
+    cmap = plt.get_cmap()
+    cmap.set_bad('r', alpha=0.5)
+    
+    # Plot the image and the good/bad sources
+    plt.figure(figsize=(12,10))
+    plt.title(image)
+    plt.imshow(image.masked_array, origin='lower', vmin=vmin, vmax=vmax,
+               cmap=cmap, interpolation='nearest')
+    plt.colorbar()
+    good_apertures.plot(color='purple', lw=1.5*scale, alpha=1)
+    bad_apertures.plot(color='r', lw=1.5*scale, alpha=1)
+    
+    # Annotate singular sources with label_name and flux_name values
+    y_offset = 3.5*given_fwhm*scale
+    for i in range(len(good_phot_data)):
+        plt.text(good_phot_data[x_name][i], good_phot_data[y_name][i]+y_offset, 
+                 f'{good_phot_data[label_name][i]}: {good_phot_data[flux_name][i]:.0f}',
+                 color='white', fontsize=8*scale, ha='center', va='center')
+    
+    # Annotate grouped sources with label_name and flux_name values in one large stack
+    group_ids = set(bad_phot_data[label_name])
+    for id in group_ids:
+        group = bad_phot_data[bad_phot_data[label_name] == id]
+        group_x = np.median(group[x_name])
+        group_y = np.median(group[y_name]) + y_offset
+        for i in range(len(group)):
+            plt.text(group_x, group_y+i*20*scale, 
+                     f'{id}: {group[flux_name][i]:.0f}',
+                     color='red', fontsize=8*scale, ha='center', va='center')
+    
+    # Show plot
+    plt.gcf().set_dpi(300)
+    plt.show()

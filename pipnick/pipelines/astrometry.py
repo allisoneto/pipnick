@@ -4,8 +4,8 @@ import time
 import logging
 from astropy.io import fits
 from pathlib import Path
-from pipnick.convenience.nickel_data import bad_columns
-from pipnick.convenience.dir_nav import unzip_directories
+from pipnick.utils.nickel_data import bad_columns
+from pipnick.utils.dir_nav import unzip_directories
 
 ######################################
 ####  ASTROMETRY.NET CALIBRATION  ####
