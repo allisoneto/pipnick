@@ -4,7 +4,6 @@
 #################################################################
 
 import numpy as np
-from pathlib import Path
 from matplotlib import pyplot, ticker
 from matplotlib.backends.backend_pdf import PdfPages
 import logging

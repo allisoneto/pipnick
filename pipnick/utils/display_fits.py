@@ -8,7 +8,6 @@ from astropy.visualization import ZScaleInterval
 
 from pipnick.utils.fits_class import Fits_Simple
 from pipnick.utils.dir_nav import unzip_directories
-from pipnick.utils.nickel_data import bad_columns
 
 
 def print_fits_info(image_path: str):

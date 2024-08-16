@@ -3,12 +3,12 @@
 ########  Fit objects to model PSFs  ########
 #############################################
 
-import numpy
-from pathlib import Path
+import numpy as np
 from scipy import optimize
 
-from astropy.modeling.functional_models import Moffat2D
-
+from astropy.modeling.functional_models import Moffat2D, Fittable2DModel
+from astropy.modeling.parameters import Parameter
+from astropy.units import UnitsError
 
 class FitMoffat2D:
     """
@@ -31,13 +31,13 @@ class FitMoffat2D:
         """
         self.c = c
         self.shape = self.c.shape
-        self.x, self.y = numpy.meshgrid(numpy.arange(self.shape[0]).astype(float),
-                                        numpy.arange(self.shape[1]).astype(float))
+        self.x, self.y = np.meshgrid(np.arange(self.shape[0]).astype(float),
+                                        np.arange(self.shape[1]).astype(float))
         self.moff = Moffat2D()
         self.par = self.guess_par()
         self.npar = self.par.size
         self.nfree = self.npar
-        self.free = numpy.ones(self.npar, dtype=bool)
+        self.free = np.ones(self.npar, dtype=bool)
 
     def guess_par(self):
         """
@@ -47,12 +47,12 @@ class FitMoffat2D:
             ndarray: Initial parameter guesses.
                      (x0, y0, amplitude, gamma, alpha, background)
         """
-        par = numpy.zeros(6, dtype=float)
+        par = np.zeros(6, dtype=float)
         par[0] = self.x[self.shape[0]//2, self.shape[1]//2]
         par[1] = self.y[self.shape[0]//2, self.shape[1]//2]
         par[2] = self.c[self.shape[0]//2, self.shape[1]//2]
-        r = numpy.sqrt((self.x-par[0])**2 + (self.y-par[1])**2)
-        par[3] = numpy.sum(r*self.c)/numpy.sum(self.c)/2
+        r = np.sqrt((self.x-par[0])**2 + (self.y-par[1])**2)
+        par[3] = np.sum(r*self.c)/np.sum(self.c)/2
         par[4] = 3.5
         par[5] = 0.
         return par
@@ -64,15 +64,15 @@ class FitMoffat2D:
         Returns:
             tuple: Lower and upper bounds (2 lists in par format)
         """
-        lb = numpy.zeros(6, dtype=float)
-        ub = numpy.zeros(6, dtype=float)
+        lb = np.zeros(6, dtype=float)
+        ub = np.zeros(6, dtype=float)
         lb[0], ub[0] = 0., float(self.shape[0])
         lb[1], ub[1] = 0., float(self.shape[1])
-        lb[2], ub[2] = 0., 1.2*numpy.amax(self.c)
+        lb[2], ub[2] = 0., 1.2*np.amax(self.c)
         lb[3], ub[3] = 1., max(self.shape)/2.
         lb[4], ub[4] = 1., 6.
-        lb[5] = numpy.amin(self.c)-0.1*numpy.absolute(numpy.amin(self.c))
-        ub[5] = 0.1*numpy.amax(self.c)
+        lb[5] = np.amin(self.c)-0.1*np.absolute(np.amin(self.c))
+        ub[5] = 0.1*np.amax(self.c)
         return lb, ub
 
     def _set_par(self, par):
@@ -122,8 +122,8 @@ class FitMoffat2D:
         self._set_par(par)
         dmoff = self.moff.fit_deriv(self.x.ravel(), self.y.ravel(), self.par[2], self.par[0],
                                     self.par[1], self.par[3], self.par[4])
-        return numpy.array([-d for d in dmoff]
-                            + [numpy.full(numpy.prod(self.shape), -1., dtype=float)]).T
+        return np.array([-d for d in dmoff]
+                            + [np.full(np.prod(self.shape), -1., dtype=float)]).T
 
     def fit(self, p0=None, fix=None, lb=None, ub=None):
         """
@@ -137,15 +137,15 @@ class FitMoffat2D:
         """
         if p0 is None:
             p0 = self.guess_par()
-        _p0 = numpy.atleast_1d(p0)
+        _p0 = np.atleast_1d(p0)
         if _p0.size != self.npar:
             raise ValueError('Incorrect number of model parameters.')
         self.par = _p0.copy()
-        _free = numpy.ones(self.npar, dtype=bool) if fix is None else numpy.logical_not(fix)
+        _free = np.ones(self.npar, dtype=bool) if fix is None else np.logical_not(fix)
         if _free.size != self.npar:
             raise ValueError('Incorrect number of model parameter fitting flags.')
         self.free = _free.copy()
-        self.nfree = numpy.sum(self.free)
+        self.nfree = np.sum(self.free)
         
         _lb, _ub = self.default_bounds()
         if lb is None:
@@ -166,14 +166,14 @@ class FitMoffat2D:
         """
         Convert full-width half-maximum (FWHM) to gamma.
         """
-        return fwhm / 2 / numpy.sqrt(2**(1/alpha)-1)
+        return fwhm / 2 / np.sqrt(2**(1/alpha)-1)
     
     @staticmethod
     def to_fwhm(gamma, alpha):
         """
         Convert gamma to full-width half-maximum (FWHM).
         """
-        return 2 * gamma * numpy.sqrt(2**(1/alpha)-1)
+        return 2 * gamma * np.sqrt(2**(1/alpha)-1)
 
 
 
@@ -200,12 +200,12 @@ class FitEllipticalMoffat2D:
         """
         self.c = c
         self.shape = self.c.shape
-        self.x, self.y = numpy.meshgrid(numpy.arange(self.shape[0]).astype(float),
-                                        numpy.arange(self.shape[1]).astype(float))
+        self.x, self.y = np.meshgrid(np.arange(self.shape[0]).astype(float),
+                                        np.arange(self.shape[1]).astype(float))
         self.par = self.guess_par()
         self.npar = self.par.size
         self.nfree = self.npar
-        self.free = numpy.ones(self.npar, dtype=bool)
+        self.free = np.ones(self.npar, dtype=bool)
 
     def guess_par(self):
         """
@@ -215,13 +215,13 @@ class FitEllipticalMoffat2D:
             ndarray: Initial parameter guesses.
                      (x0, y0, amplitude, gamma1, gamma2, phi, alpha, background)
         """
-        par = numpy.zeros(8, dtype=float)
+        par = np.zeros(8, dtype=float)
         par[0] = self.x[self.shape[0]//2, self.shape[1]//2]
         par[1] = self.y[self.shape[0]//2, self.shape[1]//2]
         par[2] = self.c[self.shape[0]//2, self.shape[1]//2]
-        r = numpy.sqrt((self.x-par[0])**2 + (self.y-par[1])**2)
-        par[3] = numpy.sum(r*self.c)/numpy.sum(self.c)/2
-        par[4] = numpy.sum(r*self.c)/numpy.sum(self.c)/2
+        r = np.sqrt((self.x-par[0])**2 + (self.y-par[1])**2)
+        par[3] = np.sum(r*self.c)/np.sum(self.c)/2
+        par[4] = np.sum(r*self.c)/np.sum(self.c)/2
         par[5] = 0.
         par[6] = 3.5
         par[7] = 0.
@@ -234,17 +234,17 @@ class FitEllipticalMoffat2D:
         Returns:
             tuple: Lower and upper bounds (2 lists in par format)
         """
-        lb = numpy.zeros(8, dtype=float)
-        ub = numpy.zeros(8, dtype=float)
+        lb = np.zeros(8, dtype=float)
+        ub = np.zeros(8, dtype=float)
         lb[0], ub[0] = 0., float(self.shape[0])
         lb[1], ub[1] = 0., float(self.shape[1])
-        lb[2], ub[2] = 0., 1.2*numpy.amax(self.c)
+        lb[2], ub[2] = 0., 1.2*np.amax(self.c)
         lb[3], ub[3] = 1., max(self.shape)/2.
         lb[4], ub[4] = 1., max(self.shape)/2.
-        lb[5], ub[5] = -1*numpy.pi/2, numpy.pi/2
+        lb[5], ub[5] = -1*np.pi/2, np.pi/2
         lb[6], ub[6] = 1., 10.
-        lb[7] = numpy.amin(self.c)-0.1*numpy.absolute(numpy.amin(self.c))
-        ub[7] = 0.1*numpy.amax(self.c)
+        lb[7] = np.amin(self.c)-0.1*np.absolute(np.amin(self.c))
+        ub[7] = 0.1*np.amax(self.c)
         return lb, ub
 
     def _set_par(self, par):
@@ -279,8 +279,8 @@ class FitEllipticalMoffat2D:
         Returns:
             array: Evaluated Moffat function values at given x, y coordinates.
         """
-        cosr = numpy.cos(par[5])
-        sinr = numpy.sin(par[5])
+        cosr = np.cos(par[5])
+        sinr = np.sin(par[5])
         A = (cosr/par[3])**2 + (sinr/par[4])**2
         B = (sinr/par[3])**2 + (cosr/par[4])**2
         C = 2 * sinr * cosr * (par[3]**-2 - par[4]**-2)
@@ -304,8 +304,8 @@ class FitEllipticalMoffat2D:
         Returns:
             ndarray: Derivatives of the Moffat function wrt each parameter.
         """
-        cosr = numpy.cos(par[5])
-        sinr = numpy.sin(par[5])
+        cosr = np.cos(par[5])
+        sinr = np.sin(par[5])
 
         a1 = (cosr/par[3])**2
         a2 = (sinr/par[4])**2
@@ -346,7 +346,7 @@ class FitEllipticalMoffat2D:
                 f * I * dD_dg1,
                 f * I * dD_dg2,
                 f * I * dD_dphi,
-                -I * numpy.log(D)]
+                -I * np.log(D)]
 
     def model(self, par=None, x=None, y=None):
         """
@@ -378,8 +378,8 @@ class FitEllipticalMoffat2D:
         """
         self._set_par(par)
         dmoff = self._eval_moffat_deriv(self.par, self.x, self.y)
-        return numpy.array([-d for d in dmoff]
-                            + [numpy.full(numpy.prod(self.shape), -1., dtype=float)]).T
+        return np.array([-d for d in dmoff]
+                            + [np.full(np.prod(self.shape), -1., dtype=float)]).T
 
     def fit(self, p0=None, fix=None, lb=None, ub=None):
         """
@@ -395,16 +395,16 @@ class FitEllipticalMoffat2D:
         # Guess parameters if no initial guess given
         if p0 is None:
             p0 = self.guess_par()
-        _p0 = numpy.atleast_1d(p0)
+        _p0 = np.atleast_1d(p0)
         if _p0.size != self.npar:
             raise ValueError('Incorrect number of model parameters.')
         self.par = _p0.copy()
         # Fix designated parameters
-        _free = numpy.ones(self.npar, dtype=bool) if fix is None else numpy.logical_not(fix)
+        _free = np.ones(self.npar, dtype=bool) if fix is None else np.logical_not(fix)
         if _free.size != self.npar:
             raise ValueError('Incorrect number of model parameter fitting flags.')
         self.free = _free.copy()
-        self.nfree = numpy.sum(self.free)
+        self.nfree = np.sum(self.free)
         
         # Set bounds for fit
         _lb, _ub = self.default_bounds()
@@ -430,14 +430,14 @@ class FitEllipticalMoffat2D:
         """
         Convert full-width half-maximum (FWHM) to gamma.
         """
-        return fwhm / 2 / numpy.sqrt(2**(1/alpha)-1)
+        return fwhm / 2 / np.sqrt(2**(1/alpha)-1)
 
     @staticmethod
     def to_fwhm(gamma, alpha):
         """
         Convert gamma to full-width half-maximum (FWHM).
         """
-        return 2 * gamma * numpy.sqrt(2**(1/alpha)-1)
+        return 2 * gamma * np.sqrt(2**(1/alpha)-1)
 
     @staticmethod
     def get_nice_phi(par):
@@ -451,7 +451,7 @@ class FitEllipticalMoffat2D:
         Returns:
             float: Nice phi in degrees.
         """
-        nice_phi = numpy.rad2deg(par[5]) + 0.000000000001
+        nice_phi = np.rad2deg(par[5]) + 0.000000000001
         if par[3] < par[4]:
             if nice_phi > 0.001:
                 return nice_phi - 90
@@ -481,7 +481,7 @@ class FitEllipticalMoffat2D:
         else:
             original_phi = nice_phi
         
-        original_rad = numpy.deg2rad(original_phi - 0.000000000001)
+        original_rad = np.deg2rad(original_phi - 0.000000000001)
         return original_rad
 
 def make_ellipse(a, b, phi, n=500):
@@ -497,9 +497,151 @@ def make_ellipse(a, b, phi, n=500):
     Returns:
         tuple: x and y coordinates of the ellipse.
     """
-    cosr = numpy.cos(phi)
-    sinr = numpy.sin(phi)
-    theta = numpy.linspace(0., 2*numpy.pi, num=n)
-    x = a * numpy.cos(theta)
-    y = b * numpy.sin(theta)
+    cosr = np.cos(phi)
+    sinr = np.sin(phi)
+    theta = np.linspace(0., 2*np.pi, num=n)
+    x = a * np.cos(theta)
+    y = b * np.sin(theta)
     return x*cosr - y*sinr, y*cosr + x*sinr
+
+
+class MoffatElliptical2D_photutils(Fittable2DModel):
+    """
+    Two dimensional Moffat model.
+
+    Parameters
+    ----------
+    amplitude : float
+        Amplitude of the model.
+    x_0 : float
+        x position of the maximum of the Moffat model.
+    y_0 : float
+        y position of the maximum of the Moffat model.
+    gamma1 : float
+        Core width in 1st arbitrary(?) direction of the Moffat model
+    gamma2 : float
+        Core width in 2nd arbitrary(?) direction of the Moffat model
+    phi : float
+        Rotation angle of the Moffat model (rad)
+    alpha : float
+        Power index of the Moffat model.
+
+    See Also
+    --------
+    Gaussian2D, Box2D
+
+    Notes
+    -----
+    Model formula:
+
+    .. math::
+
+        f(x, y) = A \\left(1 + \\frac{\\left(x - x_{0}\\right)^{2} +
+        \\left(y - y_{0}\\right)^{2}}{\\gamma^{2}}\\right)^{- \\alpha}
+    """
+
+    amplitude = Parameter(default=1, description="Amplitude (peak value) of the model")
+    x_0 = Parameter(
+        default=0, description="X position of the maximum of the Moffat model"
+    )
+    y_0 = Parameter(
+        default=0, description="Y position of the maximum of the Moffat model"
+    )
+    gamma1 = Parameter(default=1, description="Core width in 1st arbitrary(?) direction of the Moffat model")
+    gamma2 = Parameter(default=1, description="Core width in 1st arbitrary(?) direction of the Moffat model")
+    phi = Parameter(default=0, description="Rotation angle of the Moffat model (rad)")
+    alpha = Parameter(default=1, description="Power index of the Moffat model")
+
+    @property
+    def fwhm(self):
+        """
+        Moffat full width at half maximum.
+        Derivation of the formula is available in
+        `this notebook by Yoonsoo Bach
+        <https://nbviewer.jupyter.org/github/ysbach/AO_2017/blob/master/04_Ground_Based_Concept.ipynb#1.2.-Moffat>`_.
+        """
+        return 2.0 * np.abs(self.gamma) * np.sqrt(2.0 ** (1.0 / self.alpha) - 1.0)
+
+    @staticmethod
+    def evaluate(x, y, amplitude, x_0, y_0, gamma1, gamma2, phi, alpha):
+        """Two dimensional Moffat model function."""
+        cosr = np.cos(phi)
+        sinr = np.sin(phi)
+        A = (cosr/gamma1)**2 + (sinr/gamma2)**2
+        B = (sinr/gamma1)**2 + (cosr/gamma2)**2
+        C = 2 * sinr * cosr * (gamma1**-2 - gamma2**-2)
+        dx = (x - x_0)
+        dy = (y - y_0)
+        D = 1 + A*dx**2 + B*dy**2 + C*dx*dy
+        return amplitude / D**alpha
+
+    @staticmethod
+    def fit_deriv(x, y, amplitude, x_0, y_0, gamma1, gamma2, phi, alpha):
+        """Two dimensional Moffat model derivative with respect to parameters."""
+        cosr = np.cos(phi)
+        sinr = np.sin(phi)
+
+        a1 = (cosr/gamma1)**2
+        a2 = (sinr/gamma2)**2
+        A = a1 + a2
+        dA_dg1 = -2*a1/gamma1
+        dA_dg2 = -2*a2/gamma2
+
+        b1 = (sinr/gamma1)**2
+        b2 = (cosr/gamma2)**2
+        B = b1 + b2
+        dB_dg1 = -2*b1/gamma1
+        dB_dg2 = -2*b2/gamma2
+
+        C = 2 * sinr * cosr * (gamma1**-2 - gamma2**-2)
+        dC_dg1 = -4 * sinr * cosr / gamma1**3
+        dC_dg2 = 4 * sinr * cosr / gamma2**3
+
+        dA_dphi = -C
+        dB_dphi = C
+        dC_dphi = C * (cosr / sinr - sinr / cosr)  # = 2 * C / tan(2 * phi)
+
+        dx = (x.ravel() - x_0)
+        dy = (y.ravel() - y_0)
+
+        D = 1 + A*dx**2 + B*dy**2 + C*dx*dy
+        dD_dx0 = -2*A*dx - C
+        dD_dy0 = -2*B*dy - C
+        dD_dg1 = dA_dg1*dx**2 + dB_dg1*dy**2 + dC_dg1*dx*dy
+        dD_dg2 = dA_dg2*dx**2 + dB_dg2*dy**2 + dC_dg2*dx*dy
+        dD_dphi = dA_dphi*dx**2 + dB_dphi*dy**2 + dC_dphi*dx*dy
+
+        I = amplitude / D**alpha
+        f = -alpha / D
+
+        return [f * I * dD_dx0,
+                f * I * dD_dy0,
+                I/amplitude,
+                f * I * dD_dg1,
+                f * I * dD_dg2,
+                f * I * dD_dphi,
+                -I * np.log(D)]
+
+    @property
+    def input_units(self):
+        if self.x_0.input_unit is None:
+            return None
+        else:
+            return {
+                self.inputs[0]: self.x_0.input_unit,
+                self.inputs[1]: self.y_0.input_unit,
+            }
+
+    def _parameter_units_for_data_units(self, inputs_unit, outputs_unit):
+        # Note that here we need to make sure that x and y are in the same
+        # units otherwise this can lead to issues since rotation is not well
+        # defined.
+        if inputs_unit[self.inputs[0]] != inputs_unit[self.inputs[1]]:
+            raise UnitsError("Units of 'x' and 'y' inputs should match")
+        return {
+            "x_0": inputs_unit[self.inputs[0]],
+            "y_0": inputs_unit[self.inputs[0]],
+            "gamma1": inputs_unit[self.inputs[0]],
+            "gamma2": inputs_unit[self.inputs[0]],
+            "amplitude": outputs_unit[self.outputs[0]],
+        }
