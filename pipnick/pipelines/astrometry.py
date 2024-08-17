@@ -8,7 +8,7 @@ from astroquery.astrometry_net import AstrometryNet
 from astroquery.exceptions import TimeoutError
 
 from pipnick.utils.nickel_data import (bad_columns, ra_key, dec_key, fwhm_approx,
-                                       ra_dec_units, fov_size_approx)
+                                       fov_size_approx)
 from pipnick.utils.dir_nav import organize_files
 
 ######################################
@@ -20,39 +20,51 @@ logger = logging.getLogger(__name__)
 def astrometry_all(maindir, api_key, table_path=None, resolve=False,
                    excl_files=[], excl_objs=[], excl_filts=[]):
     """
-    Runs astrometry.net calibration on all images input, and saves the calibrated
-    fits files to astro_dir. Uses astrometry.net's API.
+    Run astrometry.net calibration on all images in the specified directory.
 
-    Args:
-        reddir (Path or str): path to directory containing images to calibrate
-        resolve (bool): If True, re-solves images with previously generated local solves
-    excl_files : list, optional
+    This function submits images to the astrometry.net API for calibration, and 
+    saves the WCS header results in a dedicated directory. It handles the 
+    Nickel Telescope's bad columns and optionally resolves previously solved images.
+
+    Parameters
+    ----------
+    maindir : str or Path
+        Path to the main directory containing images to calibrate.
+    api_key : str
+        API key for astrometry.net.
+    table_path : str or Path, optional
+        Path to a table containing metadata for the images.
+    resolve : bool, optional
+        If True, re-solves images with previously generated local solutions.
+    excl_files : list of str, optional
         List of file stems to exclude (exact match not necessary).
-    excl_objs : list, optional
+    excl_objs : list of str, optional
         List of object strings to exclude (exact match not necessary).
-    excl_filts : list, optional
+    excl_filts : list of str, optional
         List of filter names to exclude.
-    
-    Returns:
-        list: list of relative paths (str) to all calibrated fits images
+
+    Returns
+    -------
+    list of Path
+        List of relative paths to all calibrated FITS images.
     """
     logger.info(f'---- astrometry_all() called on main directory {maindir}')
     ast = AstrometryNet()
     ast.api_key = api_key
-    timeout = 60    # Seconds before timing out on initial solve
+    timeout = 60  # Seconds before timing out on initial solve
     
     maindir = Path(maindir)
     reddir = maindir / 'reduced'
     
+    # Organize files based on exclusion criteria and directory structure
     file_df = organize_files(reddir, table_path, 'astrometry',
                              excl_files, excl_objs, excl_filts)
     image_paths = file_df.paths
     
-    # Modify images to remove the Nickel Telescope's bad columns
+    # Prepare directories for processing
     mod_dir = maindir / 'processing' / 'mod-astro-input'  # Directory for modified images
     mod_dir.mkdir(parents=True, exist_ok=True)
     
-    # Makes output folder if it doesn't already exist
     astro_dir = maindir / 'astrometric'
     wcs_dir = astro_dir / 'wcs'
     corr_dir = astro_dir / 'corr'
@@ -69,17 +81,15 @@ def astrometry_all(maindir, api_key, table_path=None, resolve=False,
 
     def check_wcs_header(wcs_header):
         if wcs_header:
-            # logger.info('')
             logger.info(f"Solution successful, saving WCS header to {output_path}")
             wcs_header.tofile(output_path, overwrite=True)
         else:
-            # logger.warning('')
             logger.warning(f"Solution failed; skipping this image")
 
     # Ignore warnings about 'RADECSYS' header key being deprecated
     warnings.simplefilter("ignore", category=FITSFixedWarning)
     
-    # Calibrate each image piece and collect output_paths
+    # Calibrate each image and collect output paths
     calibrated_fits_paths = []
     unsolved_submission_ids = []
     for image_path in mod_paths:
@@ -123,7 +133,24 @@ def astrometry_all(maindir, api_key, table_path=None, resolve=False,
 
 
 def make_cleaned_inputs(image_paths, mod_dir):
-    # Modify images to remove the Nickel Telescope's bad columns
+    """
+    Modify images to remove bad columns and create new FITS files with these changes.
+    
+    This function processes each image by masking out bad columns and other
+    problematic regions, creating new modified FITS files in a specified directory.
+
+    Parameters
+    ----------
+    image_paths : list of Path
+        List of paths to the input images.
+    mod_dir : Path
+        Directory to save the modified FITS files.
+
+    Returns
+    -------
+    list of Path
+        List of paths to the modified FITS files.
+    """
     logger.info("Zeroing out masked regions for faster astrometric solves")
     
     mod_paths = []
@@ -132,12 +159,12 @@ def make_cleaned_inputs(image_paths, mod_dir):
         with fits.open(file) as hdul:
             data = np.array(hdul[0].data)
             try:
-                # Creating modified FITS files w/ masked regions set to 0
+                # Create modified FITS files with masked regions set to 0
                 mask = np.array(hdul['MASK'].data)
                 mask = mask.astype(bool)
                 data[mask] = 0
             except KeyError:
-                # If no mask in FITS file, sets bad columns = 0
+                # If no mask in FITS file, set bad columns to 0
                 data[:, bad_columns] = 0
                 logger.debug("No mask in FITS file--masking Nickel bad columns only")
             # Save the modified FITS file to the output directory
@@ -149,18 +176,26 @@ def make_cleaned_inputs(image_paths, mod_dir):
 
 def get_astrometric_solves(image_paths, astro_dir, mode):
     """
-    Returns any local copies of astrometric solves stored from previous runs of
-    run_astrometry(). Skips if image has not yet been solved.
-
-    Args:
-        image_paths (list): list of relative paths to all images
-        astro_dir (str): path to output image folder
-        mode (str): Whether to return paths to calibrated image or .corr file w/ source table
-
-    Returns:
-        list: list of relative paths (str) to all calibrated fits images
-    """
+    Retrieve local copies of astrometric solutions from previous runs.
     
+    This function checks for previously solved images in the specified directory
+    and returns their paths if they exist. It supports retrieving either the
+    calibrated image or the source table with WCS information.
+
+    Parameters
+    ----------
+    image_paths : list of Path
+        List of paths to the input images.
+    astro_dir : Path
+        Path to the directory containing the astrometric solutions.
+    mode : str
+        Mode for retrieving files ('image' or 'corr').
+
+    Returns
+    -------
+    list of Path
+        List of paths to the local copies of astrometric solutions.
+    """
     logger.info("Returning local copies of astrometric solves; astrometry.net not used")
     calibrated_fits_paths = []
     astro_dir = Path(astro_dir)
