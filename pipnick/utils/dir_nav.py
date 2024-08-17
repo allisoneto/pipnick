@@ -11,7 +11,7 @@ from pipnick.utils.nickel_data import focus_label
 logger = logging.getLogger(__name__)
 
 
-def organize_files(datadir, table_path, mode,
+def organize_files(datadir, use_table, mode,
                    excl_files, excl_objs, excl_filts):
     """
     Extract, organize files by metadata, and apply exclusions to
@@ -42,11 +42,22 @@ def organize_files(datadir, table_path, mode,
     pd.DataFrame
         DataFrame containing organized file information.
     """
+    # Set path to save table of files processed in reduction
+    table_path = datadir.parent / f'{mode}_files.tbl'
     
-    if table_path is None:
-        # Set path to save table of files processed in reduction
-        table_path = datadir.parent / f'{mode}_files.tbl'
-        
+    if use_table:
+        # Extract files from an astropy Table file
+        logger.info(f"Files will be extracted from Astropy table file {table_path}, not directory {datadir}")
+        try:
+            file_table = Table.read(table_path, format='ascii.fixed_width')
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Table file must be initialized by running {mode} function once with use_table=False")
+        # Convert astropy table to pandas DataFrame
+        file_df = file_table.to_pandas()
+        file_df.insert(1, "files", file_df.paths)
+        file_df.paths = [Path(file_path) for file_path in file_df.paths]
+        logger.info(f"{len(file_df.paths)} files extracted from table file")
+    else:
         # Extract files from the specified directory
         if mode == 'reduction':
             files = [file for file in datadir.iterdir() if file.is_file()]
@@ -78,15 +89,6 @@ def organize_files(datadir, table_path, mode,
         file_table = Table.from_pandas(file_df)
         file_table.remove_column('files')
         file_table.write(table_path, format='ascii.fixed_width', overwrite=True)
-    else:
-        # Extract files from an astropy Table file
-        logger.info(f"Files will be extracted from Astropy table file {table_path}, not directory {datadir}")
-        file_table = Table.read(table_path, format='ascii.fixed_width')
-        # Convert astropy table to pandas DataFrame
-        file_df = file_table.to_pandas()
-        file_df.insert(1, "files", file_df.paths)
-        file_df.paths = [Path(file_path) for file_path in file_df.paths]
-        logger.info(f"{len(file_df.paths)} files extracted from table file")
     
     # Apply manual exclusions based on provided criteria
     # (excludes file if any str in excl_list is in the the file's excl_type)

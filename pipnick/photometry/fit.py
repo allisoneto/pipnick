@@ -19,7 +19,6 @@ from photutils.aperture import CircularAperture
 from pipnick.utils.fits_class import Fits_Simple
 from pipnick.photometry.moffat_model import FitEllipticalMoffat2D, FitMoffat2D, make_ellipse
 from pipnick.photometry.starfind import generate_stamps
-from pipnick.photometry.fit import fit_psf_single, fit_psf_stack, psf_plot
 from pipnick.utils.dir_nav import unzip_directories
 from pipnick.utils.nickel_data import plate_scale_approx
 

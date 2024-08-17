@@ -61,8 +61,7 @@ def psf_analysis(image, proc_dir, thresh=10.0, mode='all', fittype='circ',
     logger.debug(f"analyze_sources() called on image {image.filename}")
 
     # Prepare a new mask and data, removing bad columns
-    new_mask = image.mask.copy()
-    print(new_mask)
+    new_mask = image.mask.copy().astype(bool)
     new_mask[:5, :] = True  # Mask top 5 rows
     new_mask[-5:, :] = True  # Mask bottom 5 rows
     new_mask[:, :5] = True  # Mask left 5 columns
