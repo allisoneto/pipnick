@@ -29,13 +29,18 @@
         }
     },
     "loggers": {
-        "nickelpipeline": {
+        "pipnick": {
             "level": "DEBUG",
             "handlers": ["console", "file"],
             "propagate": false
         },
         "__name__": {
             "level": "DEBUG",
+            "handlers": ["console", "file"],
+            "propagate": false
+        },
+        "astropy": {
+            "level": "WARNING",
             "handlers": ["console", "file"],
             "propagate": false
         }

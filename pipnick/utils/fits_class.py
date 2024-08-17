@@ -124,15 +124,14 @@ class Fits_Simple:
         if self._mask is None:
             with fits.open(self.path) as hdul:
                 try:
-                    return hdul['MASK'].data
+                    self._mask = hdul['MASK'].data
                 except KeyError:
                     logger.debug(f'No mask in FITS file {self.path.name}; returning default mask')
                     if all(self.shape == ccd_shape):
-                        return get_masks_from_file('mask')
+                        self._mask = get_masks_from_file('mask')
                     elif all(self.shape == fov_shape):
-                        return get_masks_from_file('fov_mask')
-        else:
-            return self._mask
+                        self._mask = get_masks_from_file('fov_mask')
+        return self._mask
 
     @mask.setter
     def mask(self, new_mask):

@@ -1,45 +1,43 @@
 
 from pathlib import Path
 import numpy as np
-import pandas as pd
 import logging
 import warnings
 
-from astropy.io import fits
 from astropy.nddata import CCDData
-from astropy.table import Table
 from astropy.wcs.wcs import FITSFixedWarning
 import astropy.units as u
 import ccdproc
 
 from pipnick.utils.nickel_data import (gain, read_noise, bias_label, 
-                                                    dome_flat_label, sky_flat_label,
-                                                    sky_flat_label_alt,
-                                                    dark_label, focus_label)
+                                       dome_flat_label, sky_flat_label,
+                                       sky_flat_label_alt,
+                                       dark_label, focus_label)
 from pipnick.utils.nickel_masks import get_masks_from_file
+from pipnick.utils.dir_nav import organize_files, norm_str
 
 logger = logging.getLogger(__name__)
 
 
-def reduce_all(rawdir=None, table_path_in=None, table_path_out=None,
-               save_inters=False, excl_files=[], excl_obj_strs=[], excl_filts=[]):
+def reduce_all(maindir, table_path=None, save_inters=False,
+               excl_files=[], excl_objs=[], excl_filts=[]):
     """
     Perform reduction of raw astronomical data frames (overscan subtraction,
     bias subtraction, flat division, cosmic ray masking).
 
     Parameters
     ----------
-    rawdir : str or Path, optional
-        Directory containing raw FITS files if no table_path_in is provided.
-    table_path_in : str, optional
-        Path to input table file with raw FITS file information.
-    table_path_out : str, optional
-        Path to output table file for storing the raw FITS file information.
+    maindir : str or Path
+        Path to the parent directory of the raw directory
+        containing the raw FITS files to be reduced.
+    table_path : str or Path, optional
+        Path to a pipnick-specific table file with information about
+        which raw FITS files to process. Must be produced by [AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA]
     save_inters : bool, optional
         If True, save intermediate results during processing.
     excl_files : list, optional
         List of file stems to exclude (exact match not necessary).
-    excl_obj_strs : list, optional
+    excl_objs : list, optional
         List of object strings to exclude (exact match not necessary).
     excl_filts : list, optional
         List of filter names to exclude.
@@ -49,17 +47,16 @@ def reduce_all(rawdir=None, table_path_in=None, table_path_out=None,
     list
         Paths to the saved reduced images.
     """
-    if rawdir is not None:
-        rawdir = Path(rawdir)
-        if table_path_out is None:
-            table_path_out = rawdir.parent / 'files_table.tbl'
-    # Organize raw files based on input directory or table
-    file_df = organize_files(rawdir, table_path_in, table_path_out, excl_files, excl_obj_strs, excl_filts)
+    logger.info(f"---- reduce_all() called on directory {maindir}")
+    maindir = Path(maindir)
+    rawdir = maindir / 'raw'
     
-    # Set up directories for saving results
-    parent_dir = file_df.paths[0].parent.parent if rawdir is None else rawdir.parent
-    reddir = parent_dir / 'reduced'
-    procdir = parent_dir / 'processing'
+    # Organize raw files based on input directory or table
+    file_df = organize_files(rawdir, table_path, 'reduction',
+                             excl_files, excl_objs, excl_filts)
+    
+    reddir = maindir / 'reduced'
+    procdir = maindir / 'processing'
     Path.mkdir(reddir, exist_ok=True)
     Path.mkdir(procdir, exist_ok=True)
     
@@ -117,159 +114,10 @@ def reduce_all(rawdir=None, table_path_in=None, table_path_out=None,
             all_red_paths += red_paths
     
     # Return
-    logger.info(f"Flat divided images saved to {reddir}")
+    logger.info(f"Fully reduced images saved to {reddir}")
     logger.info("---- reduce_all() call ended")
     return all_red_paths
 
-def organize_files(rawdir, table_path_in, table_path_out,
-                   excl_files, excl_obj_strs, excl_filts):
-    """
-    Organize files by extracting metadata and applying exclusions. Saves information
-    to or draws information from a table file, and comments out files to be excluded.
-
-    Parameters
-    ----------
-    rawdir : str or None
-        Directory to scan for raw FITS files.
-    table_path_in : str or None
-        Path to input table file with raw FITS file information.
-    table_path_out : str
-        Path to output table file for storing the raw FITS file information.
-    excl_files : list
-        List of file stems to exclude (exact match not necessary).
-    excl_obj_strs : list
-        List of object strings to exclude (exact match not necessary).
-    excl_filts : list
-        List of filter names to exclude.
-
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame containing organized file information.
-    """
-    table_path_out = Path(table_path_out)
-    if table_path_in is not None:
-        table_path_in = Path(table_path_in)
-        # Extract raw files from an astropy Table file
-        logger.info(f"---- reduce_all() called on Astropy table file {table_path_in}")
-        file_table = Table.read(table_path_in, format='ascii.fixed_width')
-        # Convert astropy table to pandas DataFrame
-        file_df = file_table.to_pandas()
-        file_df.insert(1, "files", file_df.paths)
-        file_df.paths = [Path(file_path) for file_path in file_df.paths]
-        logger.info(f"{len(file_df.paths)} raw files extracted from table file")
-    else:
-        # Extract raw files from the specified directory
-        logger.info(f"---- reduce_all() called on directory {rawdir}")
-        rawfiles = [file for file in rawdir.iterdir() if (file.is_file())]
-        logger.info(f"{len(rawfiles)} raw files extracted from raw directory")
-    
-        # Create DataFrame with file metadata
-        obj_list = []
-        filt_list = []
-        for file in rawfiles:
-            hdul = fits.open(str(file))
-            obj_list.append(norm_str(hdul[0].header["OBJECT"]))
-            filt_list.append(hdul[0].header["FILTNAM"])
-            hdul.close()
-
-        file_df = pd.DataFrame({
-            "names": [file.stem for file in rawfiles],
-            "files": rawfiles,
-            "objects": obj_list,
-            "filters": filt_list,
-            "paths": rawfiles
-            })
-    
-        # Save the table file for future reference
-        logger.info(f"Saving table of file data to {table_path_out}")
-        logger.debug(f"You can set output file path to .yml for ease of commenting out files in VS Code")
-        file_table = Table.from_pandas(file_df)
-        file_table.remove_column('files')
-        
-        # Write table as ascii file to table_path_out
-        file_table.write(table_path_out, format='ascii.fixed_width', overwrite=True)
-    
-    # Apply manual exclusions based on provided criteria
-    all_excluded_file_names = []
-    
-    def exclude(exclusion_list, file_df, axis):
-        excl_func = create_exclusion_func(exclusion_list)
-        excluded_file_names = list(file_df.names[axis.apply(lambda x: not excl_func(x))])
-        new_file_df = file_df.copy()[axis.apply(excl_func)]
-        return new_file_df, excluded_file_names
-    
-    # Exclude by file name (excludes file if any str in excl_files is in the file name)
-    file_df, excluded_file_names = exclude(excl_files, file_df, file_df.names)
-    all_excluded_file_names += excluded_file_names
-    logger.info(f"Manually excluding files with names {excluded_file_names}")
-    
-    # Exclude by object name (excludes file if any str in excl_obj_strs is in object name)
-    file_df, excluded_file_names = exclude(excl_obj_strs, file_df, file_df.objects)
-    all_excluded_file_names += excluded_file_names
-    logger.info(f"Manually excluding files with {excl_obj_strs} in object name: {excluded_file_names}")
-    
-    # Exclude by filter (excludes file if any str in excl_filts is in filter name)
-    file_df, excluded_file_names = exclude(excl_filts, file_df, file_df.filters)
-    all_excluded_file_names += excluded_file_names
-    logger.info(f"Manually excluding files with {excl_filts} filters: {excluded_file_names}")
-    
-    # Exclude all focus images automatically (excludes file if 'focus' is in object name)
-    file_df, excluded_file_names = exclude([focus_label], file_df, file_df.objects)
-    all_excluded_file_names += excluded_file_names
-    logger.info(f"Automatically excluding files with 'Focus' in object name: {excluded_file_names}")
-    
-    # If table_path_out isn't provided, preserve the original table file, but show which files the table says to exclude
-    if table_path_out is not None:
-        already_excl_lines = comment_out_rows(all_excluded_file_names, table_path_out, modify=False)
-        logger.info(f"Automatically excluding files already commented out in the table file: {already_excl_lines}")
-        logger.debug(f"Since table_path_out has not been provided, the table file is not modified to comment out manual exclusions {all_excluded_file_names}")
-    # If is provided, add '#' to excluded files' rows in table file to ignore them in future
-    else:
-        already_excl_lines = comment_out_rows(all_excluded_file_names, table_path_out, modify=True)
-        logger.info(f"Modifying {table_path_out} to ignore manually excluded files in future")
-
-    # Return
-    return file_df
-
-def comment_out_rows(excluded_file_names, table_file, modify=True):
-    """
-    Comment out specified rows in a table file based on exclusion criteria.
-
-    Parameters
-    ----------
-    excluded_file_names : list
-        List of file names to comment out.
-    table_file : str
-        Path to the table file to modify.
-    modify : bool, optional
-        Whether to modify the file or not.
-
-    Returns
-    -------
-    list
-        List of file names that were already commented out.
-    """
-    with open(table_file, 'r') as f:
-        lines = f.readlines()
-    
-    new_lines = []
-    already_excl_lines = []
-    for line in lines:
-        if line.strip().startswith('#'):
-            # Retrieves just the file stem (i.e. 'd1001')
-            already_excl_lines.append(line.split('|')[1].split(' ')[1])
-            new_lines.append(line)
-        elif modify and any(file_name in line for file_name in excluded_file_names):
-            new_lines.append('#' + line)    # "comments out" the row
-        elif modify:
-            new_lines.append(line)
-    
-    if modify:
-        with open(table_file, 'w') as f:
-            f.writelines(new_lines)
-    
-    return already_excl_lines
 
 def init_ccddata(frame):
     """
@@ -285,6 +133,7 @@ def init_ccddata(frame):
     CCDData
         Initialized and processed CCDData object.
     """
+    logger.debug(f"Removing cosmic rays from {Path(frame).name}")
     ccd = CCDData.read(frame, unit=u.adu)
     ccd.mask = get_masks_from_file('fov_mask')
     ccd.mask[ccd.data > 62000] = True
@@ -412,7 +261,7 @@ def get_master_flats(file_df, save=True, save_dir=None):
     else:
         flattype = dome_flat_label
     logger.debug(f"Assuming that flat label names normalize to:  {sky_flat_label} or {sky_flat_label_alt} (sky flat) and {dome_flat_label} (dome flat)")
-    logger.debug(f"Using flat type '{flattype}'")
+    logger.info(f"Using flat type '{flattype}'")
     
     master_flats = {}
     
@@ -455,48 +304,6 @@ def save_results(scifile_df, modifier_str, save_dir):
     for file, path in zip(scifile_df.files, save_paths):
         file.write(path, overwrite=True)
     return save_paths
-
-def norm_str(s):
-    """
-    Normalize a string for comparison purposes--all caps, no spaces.
-    'Sky flat' -> 'SKYFLAT'
-
-    Parameters
-    ----------
-    s : str or list
-        String or list of strings to normalize.
-
-    Returns
-    -------
-    str or list
-        Normalized string or list of normalized strings.
-    """
-    if isinstance(s, list):
-        return [norm_str(elem) for elem in s]
-    return s.upper().replace(' ', '')
-
-def create_exclusion_func(exclude_list):
-    """
-    Create a function to determine if a file should be excluded based on a list of criteria.
-
-    Parameters
-    ----------
-    exclude_list : list
-        List of criteria for exclusion.
-
-    Returns
-    -------
-    function
-        Function that takes a target (string) and returns True if it should be excluded.
-    """
-    if exclude_list is None:
-        return lambda _: True
-    exclude_list = [norm_str(obj_str) for obj_str in exclude_list]
-    def excl_func(target):
-        target_str = norm_str(target)
-        is_excluded = any(excluded_str in target_str for excluded_str in exclude_list)
-        return not is_excluded
-    return excl_func
 
 
 bias_label = norm_str(bias_label)

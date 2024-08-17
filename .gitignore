@@ -168,7 +168,7 @@ old_git
 
 docs/sphinx_warnings.out
 
-examples/test_data_example
+testing
 *.log.1
 *.log.2
 *proc_files
