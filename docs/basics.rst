@@ -1,16 +1,6 @@
 Basic Data Reduction
 ====================
 
-Basic data-reduction steps include overscan subtraction, trimming,
-bias-subtraction, and field-flattening.
-
-To perform these steps, ...
-
-Here are some options for how to run the code...
-
-Image Reduction Pipeline
-========================
-
 This tutorial guides you through the process of reducing raw astronomical
 data using the `reduce_all()` function. The reduction process includes
 overscan subtraction, bias subtraction, flat fielding and cosmic ray masking.
