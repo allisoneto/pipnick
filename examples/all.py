@@ -13,23 +13,20 @@ logger = logging.getLogger(__name__)
 api_key = 'exampleapikey'
 
 # Define directory containing raw images
-rawdir = 'data_example/raw'
+maindir = 'data_example'
 
 # Basic reduction
-red_files = reduce_all(rawdir=rawdir, save_inters=True)
-reddir = red_files[0].parent.parent
+red_files = reduce_all(maindir)
 
 # Astrometric calibration
-astro_calib_files = astrometry_all(reddir, api_key)
+astro_calib_files = astrometry_all(maindir, api_key=api_key, resolve=True)
 
 # Photometric calibration
-src_catalog_paths = photometry_all(reddir, group=True, plot_final=True,
+src_catalog_paths = photometry_all(maindir, group=True, plot_final=True,
                                    plot_inters=False)
 
 # Final calibration (convert pixel coordinates -> RA/Dec)
-photodir = src_catalog_paths[0].parent.parent
-astrodir = astro_calib_files[0].parent
-astrophot_data_tables = final_calib_all(photodir, astrodir)
+astrophot_data_tables = final_calib_all(maindir)
 
 # Display images & annotate sources
 for object, src_table_dict in astrophot_data_tables.items():

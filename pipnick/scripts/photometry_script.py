@@ -11,11 +11,17 @@ class PhotometryPipeline(scriptbase.ScriptBase):
     @classmethod
     def get_parser(cls, width=None):
         parser = super().get_parser(description='Extracts sources from images & stores data in a table', width=width)
-        parser.add_argument('reddir', type=str,
-                            help='Path to directory with reduced files to photometrically analyze.')
-        parser.add_argument('-out', '--output_dir', default=None, type=str,
-                            help='Path to directory to save results. Defaults to /photometric/ in same directory as reddir')
-        parser.add_argument('-t', '--thresh', default=8.0, type=float,
+        parser.add_argument('maindir', type=str,
+                            help='Path to main directory containing reduced directory with the files to be photometrically analyzed.')
+        parser.add_argument('-t', '--use_table', action='store_true',
+                            help='Whether to use the table file to automatically exclude files the have been commented-out')
+        parser.add_argument('--excl_files', default=[], type=list,
+                            help='List of file stems substrings to exclude (exact match not necessary).')
+        parser.add_argument('--excl_objs', default=[], type=list,
+                            help='List of object substrings to exclude (exact match not necessary).')
+        parser.add_argument('--excl_filts', default=[], type=list,
+                            help='List of filter substrings to exclude (exact match not necessary).')
+        parser.add_argument('-th', '--thresh', default=8.0, type=float,
                             help='Threshold for source detection = background std * thresh.')
         parser.add_argument('-g', '--group', action='store_true', 
                             help='Consolidates groups of sources detected together into one source')
@@ -47,7 +53,10 @@ class PhotometryPipeline(scriptbase.ScriptBase):
         adjust_global_logger(log_levels[args.verbosity], __name__)
         logger = logging.getLogger(__name__)
         
-        src_catalogs = photometry_all(args.reddir, output_dir=args.output_dir, 
+        src_catalogs = photometry_all(args.maindir, use_table=args.use_table,
+                                      excl_files=args.excl_files,
+                                      excl_objs=args.excl_objs, 
+                                      excl_filts=args.excl_filts, 
                                       thresh=args.thresh, group=args.group, 
                                       mode=args.mode, fittype=args.fittype,
                                       plot_final=args.plot_final, 

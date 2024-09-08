@@ -39,7 +39,7 @@ def photometry_all(maindir, use_table=False,
     excl_objs : list, optional
         List of object strings to exclude (exact match not necessary).
     excl_filts : list, optional
-        List of filter names to exclude.
+        List of filter names to exclude (exact match not necessary).
     thresh : :obj:`float`, optional
         Threshold for source detection, defined as a multiple of the background 
         standard deviation. Default is 8.0.

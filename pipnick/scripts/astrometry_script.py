@@ -11,17 +11,20 @@ class AstrometryPipeline(scriptbase.ScriptBase):
     @classmethod
     def get_parser(cls, width=None):
         parser = super().get_parser(description='Performs astrometric calibration on reduced images', width=width)
-        parser.add_argument('reddir', type=str,
-                            help='Path to directory with reduced files to astrometrically calibrate.')
+        parser.add_argument('maindir', type=str,
+                            help='Path to the main directory containing the reduced directory with the FITS files to be astrometrically calibrated.')
         parser.add_argument('apikey', type=str,
                             help='API key from https://nova.astrometry.net account')
-        parser.add_argument('-out', '--output_dir', default=None, type=str,
-                            help='Path to directory to save calibrated images. Defaults to /astrometric/ in same directory as reddir')
-        parser.add_argument('-t', '--output_type', default='image', type=str,
-                            help='Whether to return paths to calibrated image or source table.',
-                            choices=['image', 'corr'])
+        parser.add_argument('-t', '--use_table', action='store_true',
+                            help='Whether to use the table file to automatically exclude files the have been commented-out')
         parser.add_argument('-r', '--resolve', action='store_true', 
                             help="re-solves images with previously generated local solves")
+        parser.add_argument('--excl_files', default=[], type=list,
+                            help='List of file stems substrings to exclude (exact match not necessary).')
+        parser.add_argument('--excl_objs', default=[], type=list,
+                            help='List of object substrings to exclude (exact match not necessary).')
+        parser.add_argument('--excl_filts', default=[], type=list,
+                            help='List of filter substrings to exclude (exact match not necessary).')
         parser.add_argument('-vv', '--very_verbose', action='store_true', 
                             help="Display most detailed logs (use --verbosity for finer control)")
         parser.add_argument('--verbosity', default=4, type=str,
@@ -40,8 +43,9 @@ class AstrometryPipeline(scriptbase.ScriptBase):
         adjust_global_logger(log_levels[args.verbosity], __name__)
         logger = logging.getLogger(__name__)
         
-        calib_files = astrometry_all(args.reddir, args.apikey, args.output_dir, 
-                                     mode=args.output_type, resolve=args.resolve)
+        calib_files = astrometry_all(args.maindir, args.apikey, args.use_table, 
+                                     args.resolve, args.excl_files, args.excl_objs, 
+                                     args.excl_filts)
         
         return calib_files
         

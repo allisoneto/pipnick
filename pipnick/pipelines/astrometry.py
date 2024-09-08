@@ -43,7 +43,7 @@ def astrometry_all(maindir, api_key, use_table=False, resolve=False,
     excl_objs : list of str, optional
         List of object strings to exclude (exact match not necessary).
     excl_filts : list of str, optional
-        List of filter names to exclude.
+        List of filter names to exclude (exact match not necessary).
 
     Returns
     -------
@@ -81,19 +81,21 @@ def astrometry_all(maindir, api_key, use_table=False, resolve=False,
         
     mod_paths = make_cleaned_inputs(image_paths, mod_dir)
 
-    def check_wcs_header(wcs_header):
-        if wcs_header:
-            logger.info(f"Solution successful, saving WCS header to {output_path}")
-            wcs_header.tofile(output_path, overwrite=True)
-        else:
-            logger.warning(f"Solution failed; skipping this image")
-
     # Ignore warnings about 'RADECSYS' header key being deprecated
     warnings.simplefilter("ignore", category=FITSFixedWarning)
     
     # Calibrate each image and collect output paths
     calibrated_fits_paths = []
     unsolved_submission_ids = []
+    
+    def check_wcs_header(wcs_header, output_path):
+        if wcs_header:
+            logger.info(f"Solution successful, saving WCS header to {output_path}")
+            wcs_header.tofile(output_path, overwrite=True)
+            calibrated_fits_paths.append(output_path)
+        else:
+            logger.warning(f"Solution failed; skipping this image")
+    
     for image_path in mod_paths:
         
         output_path_stem = image_path.stem.split('_')[0]
@@ -117,7 +119,7 @@ def astrometry_all(maindir, api_key, use_table=False, resolve=False,
                                               detect_threshold=8.0,
                                               publicly_visible='n',
                                               verbose=False)
-            check_wcs_header(wcs_header)
+            check_wcs_header(wcs_header, output_path)
         except TimeoutError as e:
             logger.info(f"No solution found on first try; will revisit after all images are submitted")
             unsolved_submission_ids.append(e.args[1])
@@ -126,7 +128,7 @@ def astrometry_all(maindir, api_key, use_table=False, resolve=False,
         try:
             wcs_header = ast.monitor_submission(submission_id,
                                                 solve_timeout=120)
-            check_wcs_header(wcs_header)
+            check_wcs_header(wcs_header, output_path)
         except TimeoutError:
             logger.warning(f"No solution found on second try; skipping.")
     

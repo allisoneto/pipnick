@@ -12,17 +12,15 @@ class ReductionPipeline(scriptbase.ScriptBase):
     @classmethod
     def get_parser(cls, width=None):
         parser = super().get_parser(description='Reduce images: subtract & trim overscan, subtract bias, divide flat', width=width)
-        parser.add_argument('-dir', '--rawdir', default=None, type=str,
-                            help='Directory with raw files to reduce.')
-        parser.add_argument('-fin', '--table_path_in', default=None, type=str,
-                            help='Path to input table file with raw FITS file information.')
-        parser.add_argument('-fout', '--table_path_out', default='reduction_files_table.tbl', type=str,
-                            help='Path to output table file for storing the raw FITS file information.')
+        parser.add_argument('maindir', default=None, type=str,
+                            help='Path to parent directory of the raw directory containing raw files to be reduced.')
+        parser.add_argument('-t', '--use_table', action='store_true',
+                            help='Whether to use the table file to automatically exclude files the have been commented-out')
         parser.add_argument('-s', '--save_inters', default=False, type=bool,
                             help='If True, save intermediate results during processing.')
         parser.add_argument('--excl_files', default=[], type=list,
                             help='List of file stems substrings to exclude (exact match not necessary).')
-        parser.add_argument('--excl_obj_strs', default=[], type=list,
+        parser.add_argument('--excl_obj', default=[], type=list,
                             help='List of object substrings to exclude (exact match not necessary).')
         parser.add_argument('--excl_filts', default=[], type=list,
                             help='List of filter substrings to exclude (exact match not necessary).')
@@ -49,7 +47,7 @@ class ReductionPipeline(scriptbase.ScriptBase):
               
         logger.info("Running reduce_all()")
         red_files = reduce_all(args.rawdir, args.table_path_in, args.table_path_out,
-                              args.save_inters, args.excl_files, args.excl_obj_strs, 
+                              args.save_inters, args.excl_files, args.excl_obj, 
                               args.excl_filts)
         
         if args.display:

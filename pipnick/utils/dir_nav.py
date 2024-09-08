@@ -35,7 +35,7 @@ def organize_files(datadir, use_table, mode,
     excl_objs : list
         List of object strings to exclude (exact match not necessary).
     excl_filts : list
-        List of filter names to exclude.
+        List of filter names to exclude (exact match not necessary).
 
     Returns
     -------
@@ -176,17 +176,19 @@ def norm_str(s):
 
 def create_exclusion_func(exclude_list):
     """
-    Create a function to determine if a file should be excluded based on a list of criteria.
-
+    Create a function to determine if any string in the provided
+    exclude_list is in another string, for the purpose of excluding files.
+    
     Parameters
     ----------
     exclude_list : list
-        List of criteria for exclusion.
+        List of strings for exclusion.
 
     Returns
     -------
     function
-        Function that takes a target (string) and returns True if it should be excluded.
+        Function that takes a target (string) and returns True if any
+        string in exclude_list is in target.
     """
     if exclude_list is None:
         return lambda _: True
