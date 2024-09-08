@@ -19,7 +19,7 @@ maindir = 'data_example'
 red_files = reduce_all(maindir)
 
 # Astrometric calibration
-astro_calib_files = astrometry_all(maindir, api_key=api_key, resolve=True)
+astro_calib_files = astrometry_all(maindir, api_key=api_key)
 
 # Photometric calibration
 src_catalog_paths = photometry_all(maindir, group=True, plot_final=True,

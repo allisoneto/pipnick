@@ -31,17 +31,38 @@ To execute the script, use the following command:
 
 .. code::
 
-   pipnick_photometry <reddir> [options]
+   pipnick_photometry <maindir> [options]
 
-Replace `<reddir>` with the path to your directory of reduced images.
+Replace `<maindir>` with the path to the directory containing all data.
+The reduced directory containing images to be calibrated must be
+at /maindir/reduced/.
+
+Once you have run this script the first time, an ASCII Astropy table of
+all files in /maindir/reduced/ will be saved for reference at 
+/maindir/astrometry_files.tbl. You may 'comment out' files to be
+ignored in future runs with a `#`.
+
+.. code::
+
+  pipnick_photometry <maindir> -t [options]
+
+Toggle on use_table with `-t` to ignore all 'commented-out' files in the table.
 
 **Using Optional Arguments**
 
-- `-out` or `--output_dir` (str, optional)
-  Path to the directory where the results will be saved. If not 
-  specified, the default is `/photometric/` in the same directory as `reddir`.
+- `-t` or `--use_table` (flag, optional)
+  Whether to use the table file to automatically exclude files that have been commented-out.
 
-- `-t` or `--thresh` (float, optional)
+- `--excl_files` (list, optional):
+  List of file stem substrings to exclude (exact match not necessary).
+
+- `--excl_objs` (list, optional):
+  List of object substrings to exclude (exact match not necessary).
+
+- `--excl_filts` (list, optional):
+  List of filter substrings to exclude (exact match not necessary).
+
+- `-th` or `--thresh` (float, optional)
   Threshold for source detection. The default is 8.0.
 
 - `-g` or `--group` (flag, optional)
@@ -68,7 +89,7 @@ For example:
 
 .. code::
 
-   pipnick_photometry 'path/to/reduced/images' -out /path/to/output -t 10.0 -g -f ellip -pf -pi
+   pipnick_photometry 'path/to/maindir' -t -th 10.0 -g -f ellip -pf -pi
 
 
 Using the Photometry Function
@@ -105,43 +126,62 @@ To run the `photometry_all()` function, follow these steps:
 
 3. **Specify the Image Directory**
 
-   Define the directory containing the images to be analyzed. This
-   should be the entire `/reduced/` directory or a specific object
-   directory. The function will process files from all subdirectories.
-
-   By default, the results will be saved in a directory named
-   `/data/photometric/` at the same level as `/data/reduced/`.
+   Define the "main" directory containing all data. The reduced directory
+   contains images to be calibrated, and must be at /maindir/reduced/.
+   The .csv source tables will be saved to a directory called
+   /maindir/photometric/[unconsolidated or consolidated] in the same
+   parent as /maindir/reduced/. Tables will be organized by object name.
 
    .. code:: python
 
-      reddir = 'path/to/data/reduced/'
+      maindir = 'path/to/data/'
 
 4. **Run the Photometry Pipeline**
 
-   Use the `photometry_all()` function to process the images. By
-   default, the function saves the results in the default directory,
-   applies a circular Moffat fit, and uses a detection threshold of
-   8.0 times the background standard deviation.
+   Use the `photometry_all()` function to process the images.
+   
+   With default parameters, this call: 
+    - Performs photometry on all images in /maindir/reduced/
+    - Uses the default detection threshold (8.0 = detect only sources brighter than 8.0 x background STD)
+    - Uses a circular Moffat fit
+    - Preserves source groups
+    - Uses the photutils setting mode = 'all' (recommended not to change--see https://photutils.readthedocs.io/en/stable/api/photutils.psf.IterativePSFPhotometry.html)
+
+   It saves .csv source tables to /maindir/photometric/unconsolidated/,
+   organized by object name.
+
+   As with the reduction pipeline, this call also creates an ascii Astropy
+   table, but of all files in /maindir/reduced/ at /maindir/astrometry_files.tbl,
+   commenting out any files that were excluded.
 
    .. code:: python
 
-      src_catalog_paths = photometry_all(reddir)
+      src_catalog_paths = photometry_all(maindir)
 
 5. **Customizing Parameters**
 
    You can customize the function's behavior with various parameters.
-   For example, you can set a different output directory, use an
-   elliptical Moffat fit, consolidate source groups, or generate
-   Matplotlib plots.
+   
+   This example:
+    - Uses the table produced by the first call to determine file exclusions
+    - Additionally excludes any files using the ``'B'`` filter
+    - Uses an elliptical Moffat fit
+    - Consolidates groups of sources into one source
+    - Generates matplotlib plots showing all detected sources & their fluxes
+    - Generates matplotlib plots showing cutouts of all source groups to manually determine if a group should be consolidated
 
    .. code:: python
 
-      src_catalog_paths = photometry_all(reddir, output_dir='path/to/output',
+      src_catalog_paths = photometry_all(maindir, use_table=True, excl_filts=['B'],
                                          thresh=15.0, group=True, fittype='ellip',
                                          plot_final=True, plot_inters=True)
 
 Viewing Results
 ---------------
+
+If possible, you should run final calibrations using the
+``pipnick.pipelines.final_calib`` module before exporting these
+.csv files for further analysis.
 
 The output `.csv` files contain tables of detected sources with their
 positions and fluxes. These tables are organized by object name and

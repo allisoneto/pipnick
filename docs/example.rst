@@ -46,19 +46,24 @@ Your key is available in the My Profile section of the dashboard.
 Define Raw Images Directory
 ---------------------------
 
-Define the directory where raw images are stored.
+Define the directory where images are stored. All raw FITS files
+to be calibrated must be in /maindir/raw/.
+
+All results of the ``pipnick`` pipeline will be saved to this
+directory: reduction products will be saved to a folder called
+/reduced/ in ``maindir``. If ``save_inters`` is set to True,
+intermediate products will be saved to /processing/ in ``maindir``
 
 .. code:: python
 
-    rawdir = 'test_data_example/raw'
+    maindir = 'data_example'
 
 Basic Reduction
 ---------------
 
 .. code:: python
 
-    red_files = reduce_all(rawdir=rawdir, save_inters=True)
-    reddir = red_files[0].parent.parent
+    red_files = reduce_all(maindir)
 
 Output:
 
@@ -98,7 +103,7 @@ Astrometric Calibration
 
 .. code:: python
 
-    astro_calib_files = astrometry_all(reddir, api_key)
+    astro_calib_files = astrometry_all(maindir, api_key)
 
 Output:
 
@@ -120,7 +125,7 @@ Photometric Calibration
 
 .. code:: python
 
-    src_catalog_paths = photometry_all(reddir, group=False, plot_final=False, plot_inters=False)
+    src_catalog_paths = photometry_all(maindir, group=False, plot_final=False, plot_inters=False)
 
 Output:
 
@@ -160,9 +165,7 @@ Final Calibration (Convert Pixel Coordinates -> RA/Dec)
 
 .. code:: python
 
-    photodir = src_catalog_paths[0].parent.parent
-    astrodir = astro_calib_files[0].parent
-    astrophot_data_tables = final_calib_all(photodir, astrodir)
+    astrophot_data_tables = final_calib_all(maindir)
 
 Output:
 
@@ -181,7 +184,8 @@ Display Images & Annotate Sources
 .. code:: python
 
     for object, src_table_dict in astrophot_data_tables.items():
-        plot_sources(object, src_table_dict)
+        for file_key, src_table in src_table_dict.items():
+            plot_sources(src_table, given_fwhm=8.0, flux_name='flux_psf', scale=1.5)
 
 Output:
 

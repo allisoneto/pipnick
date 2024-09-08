@@ -37,33 +37,27 @@ To execute the script, use the following command:
 
 .. code::
 
-  pipnick_reduction <rawdir> [options]
+  pipnick_reduction <maindir> [options]
 
-Replace `<rawdir>` with the path to your directory of raw images.
+Replace `<maindir>` with the directory containing the 'raw' directory.
+All raw FITS files to be calibrated must be in /maindir/raw/.
 
 Once you have run this script the first time, an ASCII Astropy table of
-all files in `rawdir` will be saved for reference. You can provide
-the path to this table instead of the raw directory, and can even 'comment
-out' files to be ignored.
+all files in /maindir/raw/ will be saved for reference /maindir/reduction_files.tbl.
+You can even 'comment out' files with a `#` to be ignored in future runs.
 
 .. code::
 
-  pipnick_reduction <table_path_in> [options]
+  pipnick_reduction <maindir> -t [options]
 
-Replace `<table_path_in>` with the path to this ASCII Astropy table.
+Toggle on use_table with `-t` to ignore all 'commented-out' files in the table.
 
 **Using Optional Arguments**
 
-The script accepts the following command-line arguments:
+The script also accepts the following command-line arguments:
 
-- `-dir` or `--rawdir` (str, optional):
-  Directory containing raw files to reduce.
-
-- `-fin` or `--table_path_in` (str, optional):
-  Path to an input table file with raw FITS file information.
-
-- `-fout` or `--table_path_out` (str, default='reduction_files_table.tbl'):
-  Path to the output table file for storing raw FITS file information.
+- `-t` or `--use_table` (flag, optional)
+  Whether to use the table file to automatically exclude files that have been commented-out.
 
 - `-s` or `--save_inters` (bool, default=False):
   If `True`, save intermediate results during processing.
@@ -71,7 +65,7 @@ The script accepts the following command-line arguments:
 - `--excl_files` (list, optional):
   List of file stem substrings to exclude (exact match not necessary).
 
-- `--excl_obj_strs` (list, optional):
+- `--excl_objs` (list, optional):
   List of object substrings to exclude (exact match not necessary).
 
 - `--excl_filts` (list, optional):
@@ -91,9 +85,10 @@ For example:
 
 .. code::
 
-  pipnick_reduction --rawdir 'path/to/data/raw/' --save_inters True --excl_files d1113 --excl_filts B --display
+  pipnick_reduction 'path/to/data/' --save_inters True --excl_files d1113 --excl_filts B --display
 
-This command processes the raw files in the specified directory, saves intermediate files, excludes certain files, and displays the reduced images.
+This command processes the raw files in the specified directory, saves
+intermediate files, excludes certain files, and displays the reduced images.
 
 
 
@@ -131,45 +126,47 @@ To reduce your raw data using the `reduce_all()` function, follow these steps:
 
 3. **Specify the Raw Image Directory**
 
-   Define the directory containing the raw images. The processed results
-   will be saved to a `/reduced/` folder within the parent directory of
-   `rawdir`. If intermediate files are to be saved, they will be stored
-   in a `/processing/` folder.
+  ``maindir`` is the directory containing the 'raw' directory. All raw
+  FITS files to be calibrated must be in /maindir/raw/.
+
+  All results of the ``pipnick`` pipeline will be saved to this directory:
+  reduction products will be saved to a folder called /reduced/ in ``maindir``.
+  If ``save_inters`` is set to True, intermediate products will be saved
+  to /processing/ in ``maindir``.
 
    .. code:: python
 
-      rawdir = 'path/to/data/raw/'
+      maindir = 'path/to/maindir/'
 
 4. **Run the Reduction Pipeline**
 
-   The `reduce_all()` function will process all files in `rawdir`,
-   excluding any files containing `'d1113'` in their name or those taken
-   with a `'B'` filter. Intermediate products, such as overscan and
-   bias-subtracted files, will be saved.
+   The `reduce_all()` function reduces all files in /maindir/raw/, excluding
+   files with ``'d1113'`` in the name or with ``'B'`` filter. It saves
+   intermediate files (overscan subtracted, bias subtracted).
 
-   Additionally, an ASCII Astropy table of all files in `rawdir` will be
-   created for reference. Files that were excluded will be commented out
-   in the table, which is saved by default as `files_table.tbl` in the
-   parent directory of `rawdir`.
+  This call also creates an ascii Astropy table of all files in /maindir/raw/
+  for reference at /maindir/reduction_files.tbl, commenting out any files that
+  were excluded.
 
    .. code:: python
 
-      redfiles = reduce_all(rawdir=rawdir, save_inters=True, 
+      redfiles = reduce_all(maindir, save_inters=True, 
                             excl_files=['d1113'], excl_filts=['B'])
 
 5. **Manual Exclusion of Files**
 
-   The created table can be edited to comment out files (e.g., bad flats)
-   that should be ignored in subsequent calls to `reduce_all()`. The
-   updated table must then be passed as `table_path_in`, instead of
-   `rawdir`. Manual exclusions can also be provided, but they will only
-   be recorded in the Astropy table if `table_path_out` is specified.
+   The table can be edited with a `#` to comment out files (e.g., bad flats)
+   that should be ignored in subsequent calls to `reduce_all()`.
+
+   This call uses this table to determine exclusions. It will exclude the
+   same files as in the first call, and adds in an exclusion for all files
+   with ``'109'`` in the object name. These exclusions will be propagated
+   to the table. This call also does not save intermediate files.
 
    .. code:: python
 
-      redfiles = reduce_all(table_path_in='test_data/reduction_files_table2.tbl', 
-                            table_path_out='test_data/reduction_files_table.tbl', 
-                            save_inters=False, excl_obj_strs=['109'])
+      redfiles = reduce_all(maindir, use_table=True, 
+                            save_inters=False, excl_objs=['109'])
 
 6. **Display the Reduced Files**
 
@@ -184,4 +181,7 @@ To reduce your raw data using the `reduce_all()` function, follow these steps:
 Viewing Results
 ---------------
 
-Reduced images can be viewed using `display_many_nickel()` or in DS9. Note that reduction may not correct certain "bad columns," which could be saturated or otherwise problematic. These columns are masked according to definitions in `pipnick.convenience.nickel_data`.
+Reduced images can be viewed using `display_many_nickel()` or in DS9. Note
+that reduction may not correct certain "bad columns," which could be saturated
+or otherwise problematic. These columns are masked according to definitions in
+`pipnick.convenience.nickel_data`.

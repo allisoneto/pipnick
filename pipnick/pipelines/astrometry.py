@@ -106,7 +106,7 @@ def astrometry_all(maindir, api_key, use_table=False, resolve=False,
             calibrated_fits_paths.append(output_path)
             continue
         
-        logger.info(f"Submitting image {image_path.name} to astrometry.net. This may take up to 60 seconds")
+        logger.info(f"Submitting image {image_path.name} to astrometry.net. This may take up to {timeout} seconds")
         try:
             wcs_header = ast.solve_from_image(image_path, fwhm=fwhm_approx,
                                               ra_key=ra_key, dec_key=dec_key,

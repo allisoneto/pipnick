@@ -16,7 +16,7 @@ class AstrometryPipeline(scriptbase.ScriptBase):
         parser.add_argument('apikey', type=str,
                             help='API key from https://nova.astrometry.net account')
         parser.add_argument('-t', '--use_table', action='store_true',
-                            help='Whether to use the table file to automatically exclude files the have been commented-out')
+                            help='Whether to use the table file to automatically exclude files that have been commented-out')
         parser.add_argument('-r', '--resolve', action='store_true', 
                             help="re-solves images with previously generated local solves")
         parser.add_argument('--excl_files', default=[], type=list,
