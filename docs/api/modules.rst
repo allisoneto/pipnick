@@ -1,7 +1,7 @@
-nickelpipeline
-==============
+pipnick
+=======
 
 .. toctree::
    :maxdepth: 4
 
-   nickelpipeline
+   pipnick

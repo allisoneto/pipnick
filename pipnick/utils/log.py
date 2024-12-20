@@ -1,21 +1,21 @@
 import pkg_resources
 import json
-import logging.config
+import logging
 
 
-def load_logging_config():
-    """
-    Loads a logging configuration from a JSON file within the package.
-
-    Returns
-    -------
-    dict
-        The logging configuration loaded from the JSON file.
-    """
-    # Load the JSON configuration from a file within the 'pipnick.utils' package
-    with pkg_resources.resource_stream('pipnick.utils', 'logging_config.json') as f:
-        config = json.load(f)
-    return config
+#def load_logging_config():
+#    """
+#    Loads a logging configuration from a JSON file within the package.
+#
+#    Returns
+#    -------
+#    dict
+#        The logging configuration loaded from the JSON file.
+#    """
+#    # Load the JSON configuration from a file within the 'pipnick.utils' package
+#    with pkg_resources.resource_stream('pipnick.utils', 'logging_config.json') as f:
+#        config = json.load(f)
+#    return config
 
 def adjust_global_logger(log_level='INFO', name='all_others'):
     """
@@ -38,8 +38,8 @@ def adjust_global_logger(log_level='INFO', name='all_others'):
     # Adjust the configuration for the file name and log level
     with pkg_resources.resource_stream('pipnick.utils', 'logging_config.json') as f:
         config = json.load(f)
-        config['handlers']['file']['filename'] = output_file
-        config['handlers']['console']['level'] = log_level
+    config['handlers']['file']['filename'] = output_file
+    config['handlers']['console']['level'] = log_level
 
     # Configure logging with the loaded configuration
     logging.config.dictConfig(config)

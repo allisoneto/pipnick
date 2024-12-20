@@ -1,18 +1,24 @@
 import logging
 from pathlib import Path
+
+from IPython import embed
+
+import numpy as np
 import pandas as pd
 from astropy.io import fits
 from astropy.table import Table
 
 from pipnick.utils.fits_class import Fits_Simple
 from pipnick.utils.nickel_data import focus_label
+from pipnick import cameras
 
 
 logger = logging.getLogger(__name__)
 
 
-def organize_files(datadir, use_table, mode,
-                   excl_files, excl_objs, excl_filts):
+def organize_files(datadir, table=None, mode=None,
+                   excl_files=None, excl_objs=None, excl_filts=None,
+                   ext='.fits'):
     """
     Extract, organize files by metadata, and apply exclusions to
     produce a pandas DataFrame of images to perform functions like
@@ -44,8 +50,8 @@ def organize_files(datadir, use_table, mode,
     """
     # Set path to save table of files processed in reduction
     table_path = datadir.parent / f'{mode}_files.tbl'
-    
-    if use_table:
+
+    if table is not None:
         # Extract files from an astropy Table file
         logger.info(f"Files will be extracted from Astropy table file {table_path}, not directory {datadir}")
         try:
@@ -58,61 +64,81 @@ def organize_files(datadir, use_table, mode,
         file_df.paths = [Path(file_path) for file_path in file_df.paths]
         logger.info(f"{len(file_df.paths)} files extracted from table file")
     else:
-        # Extract files from the specified directory
-        if mode == 'reduction':
-            files = [file for file in datadir.iterdir() if file.is_file()]
-        else:
-            obj_dirs = [dir for dir in datadir.iterdir() if dir.is_dir()]
-            files = [file for obj_dir in obj_dirs for file in obj_dir.iterdir()]
-        logger.info(f"{len(files)} files extracted from directory {datadir}")
-        
-        # Create DataFrame with file metadata
-        obj_list = []
-        filt_list = []
-        for file in files:
-            hdul = fits.open(str(file))
-            obj_list.append(norm_str(hdul[0].header["OBJECT"]))
-            filt_list.append(hdul[0].header["FILTNAM"])
-            hdul.close()
+        _datadir = Path(datadir).absolute()
+        if not _datadir.is_dir():
+            raise NotADirectoryError(f'{datadir} does not exist!')
+        files = sorted(_datadir.glob(f'*{ext}'))
+        nfiles = len(files)
+        logger.info(f"Found {nfiles} data files.")
 
-        file_df = pd.DataFrame({
-            "names": [file.stem for file in files],
-            "files": files,
-            "objects": obj_list,
-            "filters": filt_list,
-            "paths": files
-            })
-    
-        # Save the table file for future reference
-        logger.info(f"Saving table of {mode} file data to {table_path}")
-        logger.info(f"You can change the file name to {mode}_files.yml for ease of commenting out files in VS Code (ctrl + '/')")
-        file_table = Table.from_pandas(file_df)
-        file_table.remove_column('files')
-        file_table.write(table_path, format='ascii.fixed_width', overwrite=True)
-    
-    # Apply manual exclusions based on provided criteria
-    # (excludes file if any str in excl_list is in the the file's excl_type)
-    excl_types = ['name', 'object', 'filter', 'object']
-    excl_lists = [excl_files, excl_objs, excl_filts, [focus_label]]
-    excl_file_names_all = []
-    for excl_type, excl_list in zip(excl_types, excl_lists):
-        excl_func = create_exclusion_func(excl_list)
-        axis = file_df[excl_type+'s']
-        excl_file_names = list(file_df.names[axis.apply(lambda x: not excl_func(x))])
-        excl_file_names_all += excl_file_names
-        file_df = file_df[axis.apply(excl_func)]
-        if len(excl_file_names) > 0:
-            logger.info(f"Manually excluding files with {excl_list} in {excl_type}: {excl_file_names}")
-    
-    # Add '#' to excluded files' rows in table file to ignore them in future
-    already_excl_lines = comment_out_rows(excl_file_names_all, table_path, modify=True)
-    if len(already_excl_lines) > 0:
-        logger.info(f"Automatically excluding files already commented out in the table file: {already_excl_lines}")
-    if len(excl_file_names_all) > 0:
-        logger.info(f"Modifying table at {table_path} to ignore manually excluded files {excl_file_names_all} in future")
-    
-    # Return
-    return file_df
+#        # Extract files from the specified directory
+#        if mode == 'reduction':
+#            files = [file for file in datadir.iterdir() if file.is_file()]
+#        else:
+#            obj_dirs = [dir for dir in datadir.iterdir() if dir.is_dir()]
+#            files = [file for obj_dir in obj_dirs for file in obj_dir.iterdir()]
+#        logger.info(f"{len(files)} files extracted from directory {datadir}")
+
+        # Use the first file to identify the camera
+        camera = eval(f'cameras.{cameras.identify_camera(files[0])}')
+
+        # Parse the metadata into a table and write the file
+        metadata = np.empty((nfiles, 7), dtype=object)
+        col_names = ['path', 'file', 'frametype', 'object', 'filter', 'binning', 'readmode']
+        for i,f in enumerate(files):
+            metadata[i] = camera.parse_metadata(f)
+        logger.info(f"Saving metadata to {table_path}")
+        metadata = Table(data=metadata, names=col_names)
+        metadata.write('test.tbl', format='ascii.fixed_width', overwrite=True)
+        return metadata
+
+#        # Create DataFrame with file metadata
+#        obj_list = []
+#        filt_list = []
+#        for file in files:
+#            hdul = fits.open(str(file))
+#            obj_list.append(norm_str(hdul[0].header["OBJECT"]))
+#            filt_list.append(hdul[0].header["FILTNAM"])
+#            hdul.close()
+#
+#        file_df = pd.DataFrame({
+#            "names": [file.stem for file in files],
+#            "files": files,
+#            "objects": obj_list,
+#            "filters": filt_list,
+#            "paths": files
+#            })
+#    
+#        # Save the table file for future reference
+#        logger.info(f"Saving table of {mode} file data to {table_path}")
+#        logger.info(f"You can change the file name to {mode}_files.yml for ease of commenting out files in VS Code (ctrl + '/')")
+#        file_table = Table.from_pandas(file_df)
+#        file_table.remove_column('files')
+#        file_table.write(table_path, format='ascii.fixed_width', overwrite=True)
+#    
+#    # Apply manual exclusions based on provided criteria
+#    # (excludes file if any str in excl_list is in the the file's excl_type)
+#    excl_types = ['name', 'object', 'filter', 'object']
+#    excl_lists = [excl_files, excl_objs, excl_filts, [focus_label]]
+#    excl_file_names_all = []
+#    for excl_type, excl_list in zip(excl_types, excl_lists):
+#        excl_func = create_exclusion_func(excl_list)
+#        axis = file_df[excl_type+'s']
+#        excl_file_names = list(file_df.names[axis.apply(lambda x: not excl_func(x))])
+#        excl_file_names_all += excl_file_names
+#        file_df = file_df[axis.apply(excl_func)]
+#        if len(excl_file_names) > 0:
+#            logger.info(f"Manually excluding files with {excl_list} in {excl_type}: {excl_file_names}")
+#    
+#    # Add '#' to excluded files' rows in table file to ignore them in future
+#    already_excl_lines = comment_out_rows(excl_file_names_all, table_path, modify=True)
+#    if len(already_excl_lines) > 0:
+#        logger.info(f"Automatically excluding files already commented out in the table file: {already_excl_lines}")
+#    if len(excl_file_names_all) > 0:
+#        logger.info(f"Modifying table at {table_path} to ignore manually excluded files {excl_file_names_all} in future")
+#    
+#    # Return
+#    return file_df
 
 
 def comment_out_rows(excluded_file_names, table_file, modify=True):
