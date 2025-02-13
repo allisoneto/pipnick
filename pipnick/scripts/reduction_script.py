@@ -40,7 +40,6 @@ class ReductionPipeline(scriptbase.ScriptBase):
     @staticmethod
     def main(args):
         
-        from pipnick import logger
         from pipnick.utils.log import adjust_global_logger
         from pipnick.pipelines.reduction import reduce_all
         from pipnick.utils.display_fits import display_many_nickel
@@ -52,13 +51,12 @@ class ReductionPipeline(scriptbase.ScriptBase):
         adjust_global_logger(log_levels[args.verbosity], __name__)
 
         # Reduce the images
-        logger.info("Running reduce_all()")
-        red_files = reduce_all(args.rawdir, rdxdir=args.rdxdir, table=args.table, save=args.save,
-                               excl_files=args.excl_files, excl_objs=args.excl_objs, 
-                               excl_filts=args.excl_filts)
+        metadata = reduce_all(args.rawdir, rdxdir=args.rdxdir, table=args.table, save=args.save,
+                              excl_files=args.excl_files, excl_objs=args.excl_objs, 
+                              excl_filts=args.excl_filts)
 
-        # Display reduced images
-        if args.display:
-            display_many_nickel(red_files)
+#        # Display reduced images
+#        if args.display:
+#            display_many_nickel(red_files)
         
         

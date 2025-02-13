@@ -1,7 +1,8 @@
-import logging
 from pathlib import Path
+import datetime
 
 from IPython import embed
+
 
 import numpy as np
 import pandas as pd
@@ -11,14 +12,47 @@ from astropy.table import Table
 from pipnick.utils.fits_class import Fits_Simple
 from pipnick.utils.nickel_data import focus_label
 from pipnick import cameras
+from pipnick import logger
 
 
-logger = logging.getLogger(__name__)
+def build_rdx_table(rawdir, rdx_table=None, ext='.fits', overwrite=False):
+    """
+    """
+    # Check the inputs
+    _rawdir = Path(rawdir).absolute()
+    if not _rawdir.is_dir():
+        raise NotADirectoryError(f'{_rawdir} does not exist!')
+
+    # Get the list of files
+    files = sorted(_rawdir.glob(f'*{ext}'))
+    nfiles = len(files)
+    logger.info(f'Found {nfiles} data files.')
+
+    # Use the first file to identify the camera
+    camera = eval(f'cameras.{cameras.identify_camera(files[0])}')
+
+    if rdx_table is None:
+        # Build default file name
+        dtime = datetime.datetime.now(datetime.UTC).isoformat(timespec='seconds')
+        rdx_table = f'{camera.__name__}_{dtime}_rdx.tbl'
+    _rdx_table = Path(rdx_table).absolute()
+    if _rdx_table.is_file() and not overwrite:
+        raise FileExistsError(f'{_rdx_table} already exists.  Set overwrite=True to overwrite.')
+
+    # Parse the metadata into a table and write the file
+    metadata = [None]*nfiles
+    cols = camera.metadata_cols()
+    for i,f in enumerate(files):
+        metadata[i] = camera.parse_metadata(f)
+    logger.info(f'Saving metadata to {_rdx_table}')
+    metadata = Table(data=np.asarray(metadata), names=cols)
+    metadata.write(_rdx_table, format='ascii.ecsv', overwrite=True)
+    return metadata
 
 
-def organize_files(datadir, table=None, mode=None,
+def build_metadata(rawdir, rdx_table=None, mode=None,
                    excl_files=None, excl_objs=None, excl_filts=None,
-                   ext='.fits'):
+                   ext='.fits', overwrite=False):
     """
     Extract, organize files by metadata, and apply exclusions to
     produce a pandas DataFrame of images to perform functions like
@@ -48,49 +82,18 @@ def organize_files(datadir, table=None, mode=None,
     pd.DataFrame
         DataFrame containing organized file information.
     """
-    # Set path to save table of files processed in reduction
-    table_path = datadir.parent / f'{mode}_files.tbl'
+    _rdx_table = None if rdx_table is None else Path(rdx_table).absolute()
+    if _rdx_table is None or not _rdx_table.is_file():
+        return build_rdx_table(rawdir, rdx_table=rdx_table, ext=ext, overwrite=overwrite)
+    return Table.read(_rdx_table, format='ascii.ecsv')
 
-    if table is not None:
-        # Extract files from an astropy Table file
-        logger.info(f"Files will be extracted from Astropy table file {table_path}, not directory {datadir}")
-        try:
-            file_table = Table.read(table_path, format='ascii.fixed_width')
-        except FileNotFoundError:
-            raise FileNotFoundError(f"Table file must be initialized by running {mode} function once with use_table=False")
-        # Convert astropy table to pandas DataFrame
-        file_df = file_table.to_pandas()
-        file_df.insert(1, "files", file_df.paths)
-        file_df.paths = [Path(file_path) for file_path in file_df.paths]
-        logger.info(f"{len(file_df.paths)} files extracted from table file")
-    else:
-        _datadir = Path(datadir).absolute()
-        if not _datadir.is_dir():
-            raise NotADirectoryError(f'{datadir} does not exist!')
-        files = sorted(_datadir.glob(f'*{ext}'))
-        nfiles = len(files)
-        logger.info(f"Found {nfiles} data files.")
-
-#        # Extract files from the specified directory
-#        if mode == 'reduction':
-#            files = [file for file in datadir.iterdir() if file.is_file()]
-#        else:
-#            obj_dirs = [dir for dir in datadir.iterdir() if dir.is_dir()]
-#            files = [file for obj_dir in obj_dirs for file in obj_dir.iterdir()]
-#        logger.info(f"{len(files)} files extracted from directory {datadir}")
-
-        # Use the first file to identify the camera
-        camera = eval(f'cameras.{cameras.identify_camera(files[0])}')
-
-        # Parse the metadata into a table and write the file
-        metadata = np.empty((nfiles, 7), dtype=object)
-        col_names = ['path', 'file', 'frametype', 'object', 'filter', 'binning', 'readmode']
-        for i,f in enumerate(files):
-            metadata[i] = camera.parse_metadata(f)
-        logger.info(f"Saving metadata to {table_path}")
-        metadata = Table(data=metadata, names=col_names)
-        metadata.write('test.tbl', format='ascii.fixed_width', overwrite=True)
-        return metadata
+    # Extract files from an astropy Table file
+    logger.info(f"Files will be extracted from Astropy table file {table_path}, not directory {datadir}")
+    # Convert astropy table to pandas DataFrame
+    file_df = file_table.to_pandas()
+    file_df.insert(1, "files", file_df.paths)
+    file_df.paths = [Path(file_path) for file_path in file_df.paths]
+    logger.info(f"{len(file_df.paths)} files extracted from table file")
 
 #        # Create DataFrame with file metadata
 #        obj_list = []

@@ -1,5 +1,6 @@
 
 from pathlib import Path
+from IPython import embed
 
 import numpy as np
 from astropy.io import fits
@@ -27,6 +28,8 @@ class NickelCamera:
     meta_keys = {
         'object': 'OBJECT',
         'filter': 'FILTNAM',
+        'exptime': 'EXPTIME',
+        'airmass': 'AIRMASS',
         'ra': 'RA',
         'dec': 'DEC',
         'xbin': 'CDELT1U',
@@ -42,16 +45,22 @@ class NickelCamera:
     Format of RA / Dec values in header, for astroquery
     """
 
-    def __init__(self, readout, binning):
-        self.readout = readout
-        self.binning = binning
+    def __init__(self):
+        pass
 
     @property
     def name(self):
         return self.__class__.__name__
     
     @classmethod
-    def parse_metadata(cls, rawfile):
+    def metadata_cols(cls):
+        """
+        Return the metadata columns for this class.  See :func:`parse_metadata`.
+        """
+        return ['path', 'file', 'frametype'] + list(cls.meta_keys.keys())
+    
+    @classmethod
+    def parse_metadata(cls, rawfile, keys=None):
         """
         Parse the relevant metadata needed for reduction from a raw file header.
 
@@ -59,16 +68,18 @@ class NickelCamera:
         ----------
         rawfile : str, Path
             Raw file to reduce
+        keys : list of str
+            A list of metadata keys to (try to) extract from the header.  The
+            valid keys are listed by ``cls.meta_keys.keys()``.
 
         Returns
         -------
-        path : Path
-        file : str
-        frametype : str
-        object : str
-        filter : str
-        binning : str
-        readmode : str, int
+        list
+            List of the metadata extracted from the file.  See
+            :func:`metadata_cols`.  The first three elements are always the
+            parent path (Path) to the file, the file name (str), and the
+            automatically determined frame type (str).  The remaining metadata
+            can be specific to each camera.
         """
         _file = Path(rawfile).absolute()
         hdr = get_header(_file)
@@ -79,12 +90,10 @@ class NickelCamera:
                     or hdr[cls.meta_keys['object']] == v:
                 frametype = k
                 break
-    
-        binning = f'{np.absolute(hdr[cls.meta_keys['xbin']])},' \
-                  f'{np.absolute(hdr[cls.meta_keys['ybin']])}'
 
-        return _file.parent, _file.name, frametype, hdr[cls.meta_keys['object']], \
-                hdr[cls.meta_keys['filter']], binning, hdr[cls.meta_keys['mode']]
+        metadata = [hdr[cls.meta_keys[key]] if cls.meta_keys[key] in hdr else None
+                    for key in cls.meta_keys.keys()]
+        return [str(_file.parent), _file.name, frametype] + metadata
     
     @classmethod
     def bpm(cls):
