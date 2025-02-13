@@ -12,11 +12,6 @@ def test_polygons():
     assert mask[0,0], 'Should mask the first pixel'
     assert np.sum(mask) == 595, 'Should mask 595 pixels in total'
 
-#    from matplotlib import pyplot
-#    extent = [-0.5, shape[1]+0.5, -0.5, shape[0]+0.5]
-#    pyplot.imshow(mask.astype(int), origin='lower', interpolation='nearest', extent=extent)
-#    pyplot.plot(vertices[:,0], vertices[:,1])
-#    pyplot.show()
 
 def test_create_mask():
     shape = (1024,1056)

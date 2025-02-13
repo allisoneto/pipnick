@@ -58,5 +58,3 @@ class ReductionPipeline(scriptbase.ScriptBase):
 #        # Display reduced images
 #        if args.display:
 #            display_many_nickel(red_files)
-        
-        
