@@ -12,8 +12,8 @@ Submodules
    pipnick.utils.fits_class
    pipnick.utils.graphs
    pipnick.utils.log
+   pipnick.utils.masking
    pipnick.utils.nickel_data
-   pipnick.utils.nickel_masks
 
 Module contents
 ---------------
