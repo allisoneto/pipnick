@@ -75,8 +75,6 @@ def reduce_all(rawdir, rdxdir=None, table=None, save=False, excl_files=None, exc
     metadata = build_metadata(_rawdir, rdx_table=table)
     nfiles = len(metadata)
 
-    exit()
-
     # Get the super bias
     super_bias = get_super_bias(metadata, save_dir=_rdxdir if save else None)
 
