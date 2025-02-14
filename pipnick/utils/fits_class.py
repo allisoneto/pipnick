@@ -5,12 +5,9 @@ from astropy.io import fits
 from astropy.visualization import ZScaleInterval
 from pathlib import Path
 from typing import Union
-import logging
 
 from pipnick.utils.nickel_data import (ccd_shape, fov_shape)
-from pipnick.utils.nickel_masks import get_masks_from_file
-
-logger = logging.getLogger(__name__)
+#from pipnick.utils.nickel_masks import get_masks_from_file
 
 class Fits_Simple:
     """
